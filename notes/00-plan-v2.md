@@ -222,8 +222,8 @@ B3 遮挡鲁棒 → B4 多候选 → **B5 gap 重启** → C1 多关键帧几何
 
 | ID | 项 | 状态 |
 |---|---|---|
-| B-1 | kit 需 Python 3.11+（`kaggle>=2.0`），本机仅 3.10 | **待办**：建独立 3.11 环境 |
-| B-2 | 五个 Kaggle 竞赛的每日提交上限 + 规则接受 | **待办**：需 Kaggle 账号/token |
+| B-1 | kit 需 Python 3.11+（`kaggle>=2.0`），本机仅 3.10 | ✅ **已解决**：`work/venv-submit`（uv, Python 3.12.15, kaggle 2.2.4） |
+| B-2 | 五个 Kaggle 竞赛的每日提交上限 + 规则接受 | ✅ **已解决**：规则已接受，**每竞赛 5 次/天**（20 天共 ~100 次） |
 | B-3 | `gh` 未登录；提交需要公开 commit URL | **待办**：需 GitHub 仓库 + `gh auth login` |
 | B-4 | `role_alignment/body/left_hand/right_hand` 顶点索引未随 kit 发布 | 以 MHR 蒙皮权重近似；可向组织者索取 |
 | B-5 | 五指标最终聚合方式（官网两轴等权 vs FAQ 名次求和） | 向组织者确认；两种下策略不变 |

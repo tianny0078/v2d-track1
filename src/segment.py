@@ -42,7 +42,10 @@ class Detector:
         self.device = device
 
     def boxes(self, image, prompts: list[str]) -> list[tuple[float, np.ndarray]]:
-        inp = self.proc(text=[prompts], images=image, return_tensors="pt").to(self.device)
+        # prompts differ in length, so the text branch must pad -- without this the processor
+        # raises "Unable to create tensor" on any episode whose two prompts tokenize unevenly.
+        inp = self.proc(text=[prompts], images=image, return_tensors="pt",
+                        padding=True, truncation=True).to(self.device)
         with torch.no_grad():
             out = self.model(**{k: (v.half() if v.is_floating_point() else v) for k, v in inp.items()})
         res = self.proc.post_process_grounded_object_detection(
@@ -111,7 +114,14 @@ def main() -> None:
     for ep in (a.eps if a.eps else range(30)):
         if (STATE / f"ep{ep:06d}.done").exists():
             continue
-        r = run_episode(ep, det, device, meta[ep], scored[str(ep)])
+        try:
+            r = run_episode(ep, det, device, meta[ep], scored[str(ep)])
+        except Exception as exc:  # one bad episode must not abort the other 29
+            import traceback
+            (STATE / f"ep{ep:06d}.fail").write_text(f"{type(exc).__name__}: {exc}\n{traceback.format_exc()[-1500:]}")
+            print(f"FAIL ep{ep:06d}: {type(exc).__name__}: {exc}", flush=True)
+            continue
+        (STATE / f"ep{ep:06d}.fail").unlink(missing_ok=True)
         (STATE / f"ep{ep:06d}.done").write_text(json.dumps(r))
         print(json.dumps(r), flush=True)
 

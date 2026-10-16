@@ -58,3 +58,60 @@
   新观察：① 相机视角很宽，人在画面里只占约 1/6 高度 → SAM 3D Body 必须**先裁剪人体再推理**；
   ② 场景里有第二个人（操作员）坐在桌边，是持续的干扰源；③ 地面平整 → **地面接触可作为度量尺度的强先验**。
 - `00:52` **全量分割启动**（30 段，后台）。
+- `01:05` **看板上线** · https://claude.ai/artifact/9RqqKHCpftrT7FaVH9CW6E
+  倒计时 / 总进度 / 11 阶段进度条 / 30 段表格 / 接触区间条形图 / GPU+磁盘 / 日志。
+  页面 `fetch('./status.json')` 每 60 秒刷新；已设每小时 :13 的定时任务刷新+重新发布。
+- `01:08` **status.json 扩字段**（按看板反馈补齐盲区）：GPU 进程带卡号与归属、
+  `objects[]`（10 物体的网格状态）、每段 `spans[][]` 真实区间边界、阶段速率与 ETA、
+  `failures[]`、`submissions[]`、`blockers[]`、磁盘分目录占用、`running[]` 在跑的任务。
+  ep0 实际区间：`[[90,109],[136,151],[184,254],[270,278],[288,302],[662,699]]` —— 最后一段与前面
+  隔了 360 帧，这个 gap 里 ACC 不计算，是免费的轨迹重启点。
+- `01:15` ⭐ **/mnt/nas3 大发现** · `/mnt/nas3/v2d` 是**官方 `nvidia-isaac/video_to_data` 重建管线的完整克隆**
+  （36 个模块：sam3d_body / sam3d / foundation_pose / hamer / wilor / moge / unidepth / grounding_dino /
+  sam2 / hoi_object_reconstruction / mesh / anycalib / geocalib …）。
+  `v2d_sam3d_body/lib/estimate_mhr_params.py` 接受 **RGB + mask 提示**（正是我们 SAM2 的输出）
+  直接产出 `mhr_params.pt` —— 单视角路径现成。
+  ⚠️ `mv_optimize_mhr_params.py` 是**多视角**版本，Track 1 只有单视角，**不能用**（会构成泄漏）。
+  · `/mnt/nas3/simfoundry-deps/sam-3d-objects/` 有 **13GB 完整 SAM 3D Objects 权重**（slat/ss 全套）。
+  · ❌ **SAM 3D Body 的权重不在 NAS 上**（全盘搜过），仍需 HF gated 访问权。
+- `01:20` **分割** · 30 段跑到 7 段，全部零丢失。物体检测分 0.64–0.69，人 0.16–0.21（分低但目视正确）。
+- `01:22` **仓库** · `git init` + `.gitignore` + `notes/submissions.md` 台账（`status.py` 会解析它喂看板）。
+- `01:40` **分割全量完成** 30/30，零崩溃（ep15 的 OWLv2 padding bug 已修，失败现在只标记不中断）。
+- `01:45` ⚠️ **系统性核查暴露缺陷簇**（不是零星噪声）：
+  `paint_roller` ep18/19/20 基本失效（ep19 物体掩码中位数 **0 像素** / 294 帧丢失）；
+  `foam_grass_block` ep15/16/17 检测分仅 0.088–0.132；`white_desk` ep9 为 3.7k 像素，
+  而同物体 ep10/11 是 22k–24k。根因：1536×1152 广角上直接检测小物体。
+  对照之下**人体跟踪 30 段全部零丢失**，所以改成"用人体框裁剪后再检测物体"，分辨率提升约一个量级。
+- `01:50` **教训 · 可视化尺度** · 全幅缩略图**无法**核验小物体（滚筒约 1k 像素 / 180 万像素）。
+  加了 `--zoom`（按物体掩码裁剪）后才发现之前"修好"的 ep19 其实锁到了地面标记物。
+  → 核查手段的分辨率不够时，核查本身是假的。
+- `01:52` **ep19 人工种子** 帧 200、框 (725,645,825,682) → 1152 像素、**零丢失**，放大视图五帧全对。
+  记入 `notes/manual_seeds.md`。
+- `01:55` ⚠️ **修复有副作用** · ep7（iron）检测分 0.205→0.864、像素 1552→3077，
+  但**丢失帧 8→165** —— 中段种子向前传播会丢。所以必须逐段比对取优，不能只看平均指标。
+- `02:10` ❌ **自动修复路线被否决并停止**。逐段比对结果（不是平均值）：
+  `ep4` 裁剪区内仍检测不到；`ep7` 丢失帧 8→165；`ep8` 物体像素 **1757→176**（严重退化）；
+  `ep9` 3670→3908 零丢失（略好）；`ep12` 1440→1440 无变化。
+  → 收益不稳定且会**破坏本来正确的掩码**。已 kill，改走"放大核查 + 人工种子"这条已验证的路。
+  教训记下：批量"改进"必须逐单元比对取优，只看聚合指标会掩盖退化。
+- `02:12` **SAM 3D Objects 的 Blackwell 风险拆解** · 官方环境是 CUDA 12.1 + kaolin 0.17 + gsplat，
+  **CUDA 12.1 不支持 sm_120**，且无 torch-2.9/cu128 的 kaolin 轮子。
+  但查了实际调用图：mesh 路径对 kaolin 的全部依赖只有
+  `from kaolin.utils.testing import check_tensor`（纯 Python 断言），gsplat 只在高斯渲染用。
+  → **只要 mesh 就可以 shim 掉 kaolin、完全跳过 gsplat**，不碰那套 CUDA 12.1 工具链。
+  pytorch3d 仍需要，但只用到 `transforms` 与 `look_at_view_transform`（纯 PyTorch），`FORCE_CUDA=0` 安装。
+- `02:30` **30 段放大核查完成** → `notes/seg_defects.md`。
+  物体掩码 **10 段有缺陷**，人体掩码 **4–6 段有缺陷**。
+  主要失效模式是**多部件物体**（white_laptop_cart 三段全中、foam_grass_block 两段）：
+  单个检测框只抓到一个部件，SAM2 就只传播那一个。
+  正确的 20 段：呼啦圈（环形都跟准）、红碗、铁、白桌 ep10/11、平底锅、粉色泡沫卷、木凳。
+- `07:55` ✅ **B-2 解决** · Kaggle 认证通过，五个竞赛规则均已接受，
+  `competition_get_submission_limits` 返回 **numAllowedNow=5（每竞赛每天 5 次）**，今日 0/5 已用。
+  → 距冻结 20 天 ≈ 每个指标 100 次提交机会，足以支撑"榜单即验证集"的频繁 A/B 策略。
+- `07:58` **CUDA 工具链澄清** · 系统 `/usr/bin/nvcc` 是 11.5（与 torch 的 12.8 不匹配，pytorch3d 构建因此失败），
+  但 **`/usr/local/cuda-12.8` 存在**。用 `CUDA_HOME=/usr/local/cuda-12.8` + `TORCH_CUDA_ARCH_LIST=12.0` 重建中。
+  → **这台机器能编 sm_120 的 CUDA 扩展**，FoundationPose 那条路的 Blackwell 风险也随之下降。
+- `08:05` **分割修复（人工种子，整体框）**：
+  `ep27` white_laptop_cart 176→**20,768** px；`ep28` 10,419→**13,217**；`ep29` 4,268→**10,783**；
+  `ep9` white_desk 3,908→**31,433**（之前跟错成圆桌）。四段均**零丢失**。
+  验证了 `seg_defects.md` 的判断：多部件物体只需一个**覆盖整体**的框即可修复。
