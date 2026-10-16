@@ -1,0 +1,52 @@
+{
+  "track": "track_1",
+  "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+  "message": "Ground-plane constrained MHR fit + smooth re-grounding",
+  "submissions": {
+    "cd_h_cm": {
+      "slug": "v2d-challenge-track1-cd-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-H (cm)",
+      "ref": 57278380,
+      "public_score": "96.92096",
+      "error": ""
+    },
+    "cd_o_cm": {
+      "slug": "v2d-challenge-track1-cd-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-O (cm)",
+      "ref": 57278381,
+      "public_score": "480.12921",
+      "error": ""
+    },
+    "acc_h_cm": {
+      "slug": "v2d-challenge-track1-acc-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-H (cm)",
+      "ref": 57278382,
+      "public_score": "0.48345",
+      "error": ""
+    },
+    "acc_o_cm": {
+      "slug": "v2d-challenge-track1-acc-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-O (cm)",
+      "ref": 57278387,
+      "public_score": "0.07429",
+      "error": ""
+    },
+    "interpenetration_cm": {
+      "slug": "v2d-challenge-track1-pen",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_ground.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - PEN (cm)",
+      "ref": 57278388,
+      "public_score": "0.00000",
+      "error": ""
+    }
+  }
+}

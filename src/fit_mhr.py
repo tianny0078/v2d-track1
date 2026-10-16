@@ -172,18 +172,30 @@ class Fitter:
                                            + pose[:, 6:].pow(2).mean())
                 if ground is not None and (w_ground > 0 or w_upright > 0):
                     gn = torch.tensor(ground["normal"], dtype=torch.float32, device=self.dev)
-                    gd = float(ground["offset"])
-                    # signed height above the floor, positive = above
-                    h = jm[:, list(FOOT_JOINTS)] @ gn + gd
-                    # one-sided: feet must not sink through the floor
-                    below = torch.relu(-h).pow(2).mean()
-                    # the lowest foot should be ON the floor (standing / walking)
-                    planted = h.min(1).values.abs().clamp(max=0.6).pow(2).mean()
-                    loss = loss + w_ground * (4.0 * below + planted)
+                    # SCALE-FREE form. Pinning the feet to the floor's measured DISTANCE mixes two
+                    # independent metric scales -- the body's (set by the assumed 1.727 m stature)
+                    # and MoGe's -- and injects a per-frame inconsistency that the scorer's single
+                    # frame-0 Sim(3) cannot absorb. Measured: that version moved CD-H from 82.68
+                    # to 96.92. What IS scale-free, and what the floor legitimately tells us, is
+                    # that the lowest foot stays at the SAME height all episode: the subject walks
+                    # on a plane, they do not sink into it or float above it. So penalise the
+                    # VARIANCE of the lowest foot's height and leave its value free.
+                    h = jm[:, list(FOOT_JOINTS)] @ gn           # offset dropped on purpose
+                    low = h.min(1).values
+                    for sl in (stretch_slices or [slice(0, T)]):
+                        if sl.stop - sl.start < 3:
+                            continue
+                        seg = low[sl]
+                        loss = loss + w_ground * (seg - seg.mean()).pow(2).mean()
                     if w_upright > 0:
+                        # pelvis -> neck points the same way as the floor normal when upright:
+                        # verified on the rest pose, up . gn = +0.9999. The first version wrote
+                        # (1 + up.gn)^2, which is minimised at up.gn = -1 -- it was REWARDING an
+                        # upside-down body, and it was active in the submission that scored
+                        # CD-H 96.92.
                         up = jm[:, NECK_J] - jm[:, PELVIS_J]
                         up = up / up.norm(dim=-1, keepdim=True).clamp(min=1e-6)
-                        loss = loss + w_upright * (1.0 + (up * gn).sum(-1)).pow(2).mean()
+                        loss = loss + w_upright * (1.0 - (up * gn).sum(-1)).pow(2).mean()
                 loss.backward()
                 if stage == 0:
                     pose.grad.mul_(mask)

@@ -188,6 +188,12 @@ def running() -> list[dict]:
     return jobs
 
 
+def leaderboard() -> dict:
+    """Our live standing. Written by src/fetch_leaderboard.py, which needs the submit venv."""
+    f = ROOT / "work/leaderboard.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
 def episodes() -> list[dict]:
     meta_f = DATA / "meta/episodes_metadata.jsonl"
     eps_f = DATA / "meta/episodes.jsonl"
@@ -249,6 +255,7 @@ def main() -> None:
         blockers=blockers(),
         failures=failures(),
         submissions=submissions(),
+        leaderboard=leaderboard(),
         running=running(),
         episodes=episodes(),
         artifacts=sorted(p.name for p in (WEB / "assets").glob("*")) if (WEB / "assets").is_dir() else [],

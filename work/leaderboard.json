@@ -1,0 +1,161 @@
+{
+ "fetched_at": "2026-10-16T20:33:34+00:00",
+ "metrics": {
+  "CD-H": {
+   "teams": 26,
+   "rank": 25,
+   "score": 70.64959,
+   "best": 13.43306,
+   "third": 14.20399,
+   "median": 15.44549,
+   "worst": 73.64771,
+   "top": [
+    {
+     "team": "EviisKitson",
+     "score": 13.43306
+    },
+    {
+     "team": "RobotPI Lab",
+     "score": 14.01671
+    },
+    {
+     "team": "ByeByeHelloHaHaHa",
+     "score": 14.20399
+    },
+    {
+     "team": "Lodestar",
+     "score": 14.28963
+    },
+    {
+     "team": "um",
+     "score": 14.85738
+    }
+   ]
+  },
+  "CD-O": {
+   "teams": 26,
+   "rank": 23,
+   "score": 145.40682,
+   "best": 17.91571,
+   "third": 19.1004,
+   "median": 31.40578,
+   "worst": 525.36396,
+   "top": [
+    {
+     "team": "EviisKitson",
+     "score": 17.91571
+    },
+    {
+     "team": "xpz666",
+     "score": 18.54107
+    },
+    {
+     "team": "RoboPI Lab",
+     "score": 19.1004
+    },
+    {
+     "team": "Lodestar",
+     "score": 19.5252
+    },
+    {
+     "team": "sv1105",
+     "score": 23.05002
+    }
+   ]
+  },
+  "ACC-H": {
+   "teams": 26,
+   "rank": 7,
+   "score": 0.14528,
+   "best": 0.13738,
+   "third": 0.13826,
+   "median": 0.17835,
+   "worst": 2.49281,
+   "top": [
+    {
+     "team": "EviisKitson",
+     "score": 0.13738
+    },
+    {
+     "team": "RobotPI Lab",
+     "score": 0.13809
+    },
+    {
+     "team": "SNU CVLAB",
+     "score": 0.13826
+    },
+    {
+     "team": "Swithinraj ",
+     "score": 0.14171
+    },
+    {
+     "team": "Lattice Studios",
+     "score": 0.14174
+    }
+   ]
+  },
+  "ACC-O": {
+   "teams": 26,
+   "rank": 5,
+   "score": 0.07429,
+   "best": 0.07111,
+   "third": 0.07288,
+   "median": 0.18698,
+   "worst": 12.96689,
+   "top": [
+    {
+     "team": "RobotPI Lab",
+     "score": 0.07111
+    },
+    {
+     "team": "Lattice Studios",
+     "score": 0.07136
+    },
+    {
+     "team": "EviisKitson",
+     "score": 0.07288
+    },
+    {
+     "team": "Marcell",
+     "score": 0.07429
+    },
+    {
+     "team": "Tony",
+     "score": 0.07429
+    }
+   ]
+  },
+  "PEN": {
+   "teams": 26,
+   "rank": 2,
+   "score": 0.0,
+   "best": 0.0,
+   "third": 0.0,
+   "median": 0.00213,
+   "worst": 0.1007,
+   "top": [
+    {
+     "team": "QY Lin",
+     "score": 0.0
+    },
+    {
+     "team": "Tony",
+     "score": 0.0
+    },
+    {
+     "team": "Furqan Zaheer",
+     "score": 0.0
+    },
+    {
+     "team": "Kelly To the H",
+     "score": 0.0
+    },
+    {
+     "team": "Lodestar",
+     "score": 5e-05
+    }
+   ]
+  }
+ },
+ "rank_sum": 62
+}

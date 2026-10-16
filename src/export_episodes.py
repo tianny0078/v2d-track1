@@ -72,13 +72,16 @@ def main() -> None:
                 except NameError:
                     mhr = _MHR = MHR()
                 g = ground[meta[ep]["camera"]]
-                gn, gd = np.array(g["normal"]), g["offset"]
+                gn = np.array(g["normal"])
                 pr = np.concatenate([pose_s, np.broadcast_to(b["scales"], (len(pose_s), 68))], 1)
                 _, j = mhr.forward(pr, b["shape"])
-                h = (j[:, list(FOOT_JOINTS)] @ gn + gd).min(1)
+                # SCALE-FREE: restore the lowest foot to this stretch's own MEAN height, not to
+                # the floor's measured distance. Pinning to the absolute distance mixes the body's
+                # metric scale with MoGe's and is what sent CD-H from 82.68 to 96.92.
+                h = (j[:, list(FOOT_JOINTS)] @ gn).min(1)
                 for sl in stretches(fids):
                     if sl.stop - sl.start >= 3:
-                        dh = gaussian_filter1d(-h[sl], a.smooth, mode="nearest")
+                        dh = gaussian_filter1d(h[sl].mean() - h[sl], a.smooth, mode="nearest")
                         pose_s[sl, :3] += (dh[:, None] * gn[None, :]) / (np.array(POSE_SIGN) * POSE_UNIT_M)
         # nearest-solved-frame fill for the rows the scorer never reads
         idx = np.clip(np.searchsorted(fids, np.arange(T)), 0, len(fids) - 1)

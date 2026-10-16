@@ -4,6 +4,7 @@
 # only prepares the files, so it is safe to run on a timer regardless.
 set -euo pipefail
 cd /home/tianyuan/projects/v2d_track1
+work/venv-submit/bin/python src/fetch_leaderboard.py || echo "leaderboard fetch failed (keeping previous snapshot)"
 python3 src/status.py
 python3 - <<'PY'
 import re, json
