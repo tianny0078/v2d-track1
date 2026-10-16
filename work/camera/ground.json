@@ -1,0 +1,50 @@
+{
+ "back_stereo_camera_left": {
+  "normal": [
+   0.02659,
+   -0.99552,
+   -0.0907
+  ],
+  "offset": 1.29759,
+  "inlier_frac": 0.584,
+  "n_frames": 5,
+  "tilt_from_vertical_deg": 5.42,
+  "normal_spread_deg": 0.76
+ },
+ "front_stereo_camera_left": {
+  "normal": [
+   -0.01237,
+   -0.99903,
+   -0.04233
+  ],
+  "offset": 1.3505,
+  "inlier_frac": 0.554,
+  "n_frames": 9,
+  "tilt_from_vertical_deg": 2.53,
+  "normal_spread_deg": 1.8
+ },
+ "left_stereo_camera_left": {
+  "normal": [
+   -0.00361,
+   -0.99545,
+   -0.09521
+  ],
+  "offset": 1.33379,
+  "inlier_frac": 0.965,
+  "n_frames": 11,
+  "tilt_from_vertical_deg": 5.47,
+  "normal_spread_deg": 0.3
+ },
+ "right_stereo_camera_left": {
+  "normal": [
+   0.01037,
+   -0.99992,
+   -0.0076
+  ],
+  "offset": 1.29712,
+  "inlier_frac": 0.793,
+  "n_frames": 5,
+  "tilt_from_vertical_deg": 0.74,
+  "normal_spread_deg": 1.89
+ }
+}

@@ -1,0 +1,52 @@
+{
+  "track": "track_1",
+  "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+  "message": "Per-stretch pose smoothing sigma=6 (|a_pred| 1.62 -> 0.16)",
+  "submissions": {
+    "cd_h_cm": {
+      "slug": "v2d-challenge-track1-cd-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-H (cm)",
+      "ref": 57274782,
+      "public_score": "82.67560",
+      "error": ""
+    },
+    "cd_o_cm": {
+      "slug": "v2d-challenge-track1-cd-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-O (cm)",
+      "ref": 57274784,
+      "public_score": "562.23698",
+      "error": ""
+    },
+    "acc_h_cm": {
+      "slug": "v2d-challenge-track1-acc-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-H (cm)",
+      "ref": 57274786,
+      "public_score": "0.25566",
+      "error": ""
+    },
+    "acc_o_cm": {
+      "slug": "v2d-challenge-track1-acc-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-O (cm)",
+      "ref": 57274790,
+      "public_score": "0.07429",
+      "error": ""
+    },
+    "interpenetration_cm": {
+      "slug": "v2d-challenge-track1-pen",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_smooth.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - PEN (cm)",
+      "ref": 57274792,
+      "public_score": "0.00000",
+      "error": ""
+    }
+  }
+}

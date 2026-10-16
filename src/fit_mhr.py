@@ -35,6 +35,12 @@ FLIP = torch.tensor([1.0, -1.0, -1.0])
 #: so that is what the regulariser has to see.
 ACC_JOINTS = (1, 2, 18, 35, 3, 19, 36, 4, 20, 37, 8, 24, 110, 74, 38, 113, 75, 39, 76, 40, 78, 42)
 
+#: Ankles and toe balls -- the joints that touch the floor when standing or walking.
+FOOT_JOINTS = (4, 20, 8, 24)
+#: Pelvis and neck: the segment between them is the body's up axis, used to keep the torso
+#: upright relative to the measured floor normal.
+PELVIS_J, NECK_J = 1, 110
+
 COCO_TO_MHR = {5: 75, 6: 39, 7: 76, 8: 40, 9: 78, 10: 42,
                11: 2, 12: 18, 13: 3, 14: 19, 15: 4, 16: 20}
 #: COCO's nose has no MHR JOINT counterpart -- joint 113 (c_head) is inside the skull, so fitting
@@ -85,15 +91,16 @@ class Fitter:
         params = torch.cat([pose, scales.expand(T, 68)], 1)
         v, j = self.m(shape.expand(T, 45), params, torch.zeros(T, 72, device=self.dev))
         pts = torch.cat([j[:, self.mhr_idx, :3], v[:, NOSE_VERTEX:NOSE_VERTEX + 1]], 1)
-        acc_j = j[:, list(ACC_JOINTS), :3] / 100.0 * self.flip
-        return pts / 100.0 * self.flip, acc_j
+        jm = j[..., :3] / 100.0 * self.flip
+        return pts / 100.0 * self.flip, jm[:, list(ACC_JOINTS)], jm
 
     def project(self, pts, fx, fy, cx, cy):
         z = pts[..., 2].clamp(min=0.3)
         return torch.stack([fx * pts[..., 0] / z + cx, fy * pts[..., 1] / z + cy], -1)
 
     def fit(self, kp: np.ndarray, K: dict, iters=(250, 400), lr=(0.05, 0.02),
-            w_smooth=2.0, w_reg=1e-3, w_jacc=0.0, stretch_slices=None, verbose=True) -> dict:
+            w_smooth=2.0, w_reg=1e-3, w_jacc=0.0, stretch_slices=None,
+            ground=None, w_ground=0.0, w_upright=0.0, verbose=True) -> dict:
         """w_jacc penalises the scored joints' own second difference, in cm -- the quantity
         ACC-H measures. Target: the reference's own |a_gt| = 0.1453 cm/frame^2, which a fully
         static prediction already achieves, so there is never a reason to land above it."""
@@ -145,7 +152,7 @@ class Fitter:
             opt = torch.optim.Adam(params, lr=lr_s)
             for it in range(n):
                 opt.zero_grad(set_to_none=True)
-                j3, acc_j = self.forward(pose, scales, shape)
+                j3, acc_j, jm = self.forward(pose, scales, shape)
                 p2 = self.project(j3, fx, fy, cx, cy)
                 res = (p2[:, sel] - k2d[:, sel]) / 100.0        # ~image-scale normalisation
                 data = (gm_loss(res, 0.6) * conf[:, sel]).sum() / conf[:, sel].sum().clamp(min=1)
@@ -163,6 +170,20 @@ class Fitter:
                             loss = loss + w_jacc * ja.norm(dim=-1).mean()
                     loss = loss + w_reg * (shape.pow(2).sum() + scales.pow(2).sum()
                                            + pose[:, 6:].pow(2).mean())
+                if ground is not None and (w_ground > 0 or w_upright > 0):
+                    gn = torch.tensor(ground["normal"], dtype=torch.float32, device=self.dev)
+                    gd = float(ground["offset"])
+                    # signed height above the floor, positive = above
+                    h = jm[:, list(FOOT_JOINTS)] @ gn + gd
+                    # one-sided: feet must not sink through the floor
+                    below = torch.relu(-h).pow(2).mean()
+                    # the lowest foot should be ON the floor (standing / walking)
+                    planted = h.min(1).values.abs().clamp(max=0.6).pow(2).mean()
+                    loss = loss + w_ground * (4.0 * below + planted)
+                    if w_upright > 0:
+                        up = jm[:, NECK_J] - jm[:, PELVIS_J]
+                        up = up / up.norm(dim=-1, keepdim=True).clamp(min=1e-6)
+                        loss = loss + w_upright * (1.0 + (up * gn).sum(-1)).pow(2).mean()
                 loss.backward()
                 if stage == 0:
                     pose.grad.mul_(mask)
@@ -170,7 +191,7 @@ class Fitter:
                 if verbose and it % max(1, n // 3) == 0:
                     hist.append((stage, it, float(data), float(loss)))
         with torch.no_grad():
-            j3, _ = self.forward(pose, scales, shape)
+            j3, _, jm_f = self.forward(pose, scales, shape)
             p2 = self.project(j3, fx, fy, cx, cy)
             err = ((p2 - k2d).norm(dim=-1) * conf).sum() / conf.sum().clamp(min=1)
         return dict(pose=pose.detach().cpu().numpy(), scales=scales.detach().cpu().numpy(),
@@ -185,23 +206,35 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eps", type=int, nargs="*")
     ap.add_argument("--device")
+    ap.add_argument("--out", type=Path, default=ROOT / "work/body")
+    ap.add_argument("--w-ground", type=float, default=1.0,
+                    help="1.0 is the measured elbow: without it the feet sit 17.2 cm BELOW the "
+                         "floor and reprojection is 1.20 px; at 1.0 they are on it (0.55 cm) for "
+                         "2.99 px; at 50 reprojection collapses to 11 px for no further gain.")
+    ap.add_argument("--w-upright", type=float, default=0.1)
     a = ap.parse_args()
     dev = a.device or pick_gpu(16000)
     K_all = json.load((ROOT / "work/camera/intrinsics.json").open())
+    G_all = json.load((ROOT / "work/camera/ground.json").open())
+    sys.path.insert(0, str(ROOT / "work/kit/v2d_submission_kit"))
+    from v2dlb.mhr_submission import stretches
     meta = {json.loads(l)["episode_index"]: json.loads(l)
             for l in (ROOT / "data/hf/track_1/meta/episodes_metadata.jsonl").open()}
-    out_dir, state = ROOT / "work/body", ROOT / "state/body"
+    out_dir, state = a.out, ROOT / "state/body"
     out_dir.mkdir(parents=True, exist_ok=True); state.mkdir(parents=True, exist_ok=True)
 
     f = Fitter(dev)
     for ep in (a.eps if a.eps else range(30)):
         z = np.load(ROOT / f"work/kp2d/ep{ep:06d}.npz")
         t0 = time.time()
-        r = f.fit(z["kp"], K_all[meta[ep]["camera"]])
+        cam = meta[ep]["camera"]
+        r = f.fit(z["kp"], K_all[cam], stretch_slices=list(stretches(z["frame_ids"])),
+                  ground=G_all[cam], w_ground=a.w_ground, w_upright=a.w_upright)
         np.savez_compressed(out_dir / f"ep{ep:06d}.npz", pose=r["pose"], scales=r["scales"],
                             shape=r["shape"], frame_ids=z["frame_ids"])
         rec = dict(ep=ep, frames=len(z["kp"]), px_err=round(r["px_err"], 2),
-                   mean_depth_m=round(r["mean_depth_m"], 2), seconds=round(time.time() - t0, 1))
+                   mean_depth_m=round(r["mean_depth_m"], 2), w_ground=a.w_ground,
+                   seconds=round(time.time() - t0, 1))
         (state / f"ep{ep:06d}.done").write_text(json.dumps(rec))
         print(json.dumps(rec), flush=True)
 

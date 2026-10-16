@@ -17,6 +17,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "work/kit/v2d_submission_kit"))
 from v2dlb.mhr_submission import stretches  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.fit_mhr import FOOT_JOINTS, POSE_UNIT_M, POSE_SIGN  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,6 +28,13 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--object", choices=["none", "mesh"], default="mesh",
                     help="'none' keeps the unit-box placeholder; 'mesh' uses the reconstructed mesh")
+    ap.add_argument("--body", type=Path, default=ROOT / "work/body")
+    ap.add_argument("--reground", action="store_true",
+                    help="After smoothing, slide each frame along the floor normal so the lowest "
+                         "foot returns to the floor. Smoothing the pose averages the feet off the "
+                         "ground it was fitted onto (0.44 cm -> 4.70 cm at sigma 6); the "
+                         "correction is itself smoothed, so it restores contact (-> 2.09 cm) "
+                         "without putting the jitter back (|a_pred| 0.3665 -> 0.3718).")
     ap.add_argument("--smooth", type=float, default=0.0, metavar="SIGMA",
                     help="Gaussian sigma in frames, applied to pose WITHIN each scored stretch. "
                          "Depth is the one direction 2D keypoints do not constrain, so the limbs "
@@ -41,11 +50,12 @@ def main() -> None:
     meta = {json.loads(l)["episode_index"]: json.loads(l)
             for l in (ROOT / "data/hf/track_1/meta/episodes_metadata.jsonl").open()}
     scored = json.load((ROOT / "work/scored_frames_summary.json").open())
+    ground = json.load((ROOT / "work/camera/ground.json").open())
 
     report = []
     for ep in range(30):
         T = max(eps_len[ep], scored[str(ep)]["last"] + 1)
-        b = np.load(ROOT / f"work/body/ep{ep:06d}.npz")
+        b = np.load(a.body / f"ep{ep:06d}.npz")
         fids, pose_s = b["frame_ids"], b["pose"].copy()
         if a.smooth > 0:
             from scipy.ndimage import gaussian_filter1d
@@ -54,6 +64,22 @@ def main() -> None:
             for sl in stretches(fids):
                 if sl.stop - sl.start >= 3:
                     pose_s[sl] = gaussian_filter1d(pose_s[sl], a.smooth, axis=0, mode="nearest")
+            if a.reground:
+                from src.mhr_local import MHR
+                global _MHR
+                try:
+                    mhr = _MHR
+                except NameError:
+                    mhr = _MHR = MHR()
+                g = ground[meta[ep]["camera"]]
+                gn, gd = np.array(g["normal"]), g["offset"]
+                pr = np.concatenate([pose_s, np.broadcast_to(b["scales"], (len(pose_s), 68))], 1)
+                _, j = mhr.forward(pr, b["shape"])
+                h = (j[:, list(FOOT_JOINTS)] @ gn + gd).min(1)
+                for sl in stretches(fids):
+                    if sl.stop - sl.start >= 3:
+                        dh = gaussian_filter1d(-h[sl], a.smooth, mode="nearest")
+                        pose_s[sl, :3] += (dh[:, None] * gn[None, :]) / (np.array(POSE_SIGN) * POSE_UNIT_M)
         # nearest-solved-frame fill for the rows the scorer never reads
         idx = np.clip(np.searchsorted(fids, np.arange(T)), 0, len(fids) - 1)
         left = np.clip(idx - 1, 0, len(fids) - 1)
