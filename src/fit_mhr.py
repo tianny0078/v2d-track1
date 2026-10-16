@@ -28,6 +28,13 @@ FLIP = torch.tensor([1.0, -1.0, -1.0])
 #: COCO-17 index -> MHR joint index. Verified geometrically on the rest pose (nose highest,
 #: ankles lowest, anatomical left has x>0). Eyes and ears are left out: MHR has no matching
 #: joints and a guessed correspondence would pull the head pose the wrong way.
+#: The 22 joints ACC-H scores, in the metric's order. Smoothing is applied to THESE positions,
+#: not to the 136 pose parameters: penalising the parameters averages over 136 dims, so a few
+#: jittering dims get diluted and the penalty saturates (measured: w_smooth 2 -> 2000 only moved
+#: |a_pred| from 2.29 to 0.71 while px_err blew up to 12). The metric measures joint positions,
+#: so that is what the regulariser has to see.
+ACC_JOINTS = (1, 2, 18, 35, 3, 19, 36, 4, 20, 37, 8, 24, 110, 74, 38, 113, 75, 39, 76, 40, 78, 42)
+
 COCO_TO_MHR = {5: 75, 6: 39, 7: 76, 8: 40, 9: 78, 10: 42,
                11: 2, 12: 18, 13: 3, 14: 19, 15: 4, 16: 20}
 #: COCO's nose has no MHR JOINT counterpart -- joint 113 (c_head) is inside the skull, so fitting
@@ -78,14 +85,18 @@ class Fitter:
         params = torch.cat([pose, scales.expand(T, 68)], 1)
         v, j = self.m(shape.expand(T, 45), params, torch.zeros(T, 72, device=self.dev))
         pts = torch.cat([j[:, self.mhr_idx, :3], v[:, NOSE_VERTEX:NOSE_VERTEX + 1]], 1)
-        return pts / 100.0 * self.flip
+        acc_j = j[:, list(ACC_JOINTS), :3] / 100.0 * self.flip
+        return pts / 100.0 * self.flip, acc_j
 
     def project(self, pts, fx, fy, cx, cy):
         z = pts[..., 2].clamp(min=0.3)
         return torch.stack([fx * pts[..., 0] / z + cx, fy * pts[..., 1] / z + cy], -1)
 
     def fit(self, kp: np.ndarray, K: dict, iters=(250, 400), lr=(0.05, 0.02),
-            w_smooth=2.0, w_reg=1e-3, verbose=True) -> dict:
+            w_smooth=2.0, w_reg=1e-3, w_jacc=0.0, stretch_slices=None, verbose=True) -> dict:
+        """w_jacc penalises the scored joints' own second difference, in cm -- the quantity
+        ACC-H measures. Target: the reference's own |a_gt| = 0.1453 cm/frame^2, which a fully
+        static prediction already achieves, so there is never a reason to land above it."""
         T = len(kp)
         k2d = torch.tensor(kp[:, self.coco, :2], dtype=torch.float32, device=self.dev)
         conf = torch.tensor(kp[:, self.coco, 2], dtype=torch.float32, device=self.dev).clamp(0, 1)
@@ -134,7 +145,7 @@ class Fitter:
             opt = torch.optim.Adam(params, lr=lr_s)
             for it in range(n):
                 opt.zero_grad(set_to_none=True)
-                j3 = self.forward(pose, scales, shape)
+                j3, acc_j = self.forward(pose, scales, shape)
                 p2 = self.project(j3, fx, fy, cx, cy)
                 res = (p2[:, sel] - k2d[:, sel]) / 100.0        # ~image-scale normalisation
                 data = (gm_loss(res, 0.6) * conf[:, sel]).sum() / conf[:, sel].sum().clamp(min=1)
@@ -143,6 +154,13 @@ class Fitter:
                     vel = pose[1:] - pose[:-1]
                     acc = pose[2:] - 2 * pose[1:-1] + pose[:-2]
                     loss = loss + w_smooth * (acc.pow(2).mean() + 0.1 * vel.pow(2).mean())
+                    if w_jacc > 0:
+                        for sl in (stretch_slices or [slice(0, T)]):
+                            if sl.stop - sl.start < 3:
+                                continue
+                            seg = acc_j[sl] * 100.0          # cm, exactly the metric's units
+                            ja = seg[:-2] - 2 * seg[1:-1] + seg[2:]
+                            loss = loss + w_jacc * ja.norm(dim=-1).mean()
                     loss = loss + w_reg * (shape.pow(2).sum() + scales.pow(2).sum()
                                            + pose[:, 6:].pow(2).mean())
                 loss.backward()
@@ -152,7 +170,7 @@ class Fitter:
                 if verbose and it % max(1, n // 3) == 0:
                     hist.append((stage, it, float(data), float(loss)))
         with torch.no_grad():
-            j3 = self.forward(pose, scales, shape)
+            j3, _ = self.forward(pose, scales, shape)
             p2 = self.project(j3, fx, fy, cx, cy)
             err = ((p2 - k2d).norm(dim=-1) * conf).sum() / conf.sum().clamp(min=1)
         return dict(pose=pose.detach().cpu().numpy(), scales=scales.detach().cpu().numpy(),

@@ -13,6 +13,10 @@ import argparse, json
 from pathlib import Path
 import numpy as np
 import trimesh
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "work/kit/v2d_submission_kit"))
+from v2dlb.mhr_submission import stretches  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,6 +26,13 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--object", choices=["none", "mesh"], default="mesh",
                     help="'none' keeps the unit-box placeholder; 'mesh' uses the reconstructed mesh")
+    ap.add_argument("--smooth", type=float, default=0.0, metavar="SIGMA",
+                    help="Gaussian sigma in frames, applied to pose WITHIN each scored stretch. "
+                         "Depth is the one direction 2D keypoints do not constrain, so the limbs "
+                         "swing in depth; that shows up as |a_pred| 11x the reference's own joint "
+                         "acceleration and, we think, as the CD-H regression too. Post-hoc "
+                         "filtering beats in-loop penalties here, which saturate: w_jacc=5 left "
+                         "|a_pred| at 2.8x while driving reprojection error to 66 px.")
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
 
@@ -35,7 +46,14 @@ def main() -> None:
     for ep in range(30):
         T = max(eps_len[ep], scored[str(ep)]["last"] + 1)
         b = np.load(ROOT / f"work/body/ep{ep:06d}.npz")
-        fids, pose_s = b["frame_ids"], b["pose"]
+        fids, pose_s = b["frame_ids"], b["pose"].copy()
+        if a.smooth > 0:
+            from scipy.ndimage import gaussian_filter1d
+            # per stretch: the metric never differences across a gap, and smoothing across one
+            # would drag the two sides of a 360-frame gap together
+            for sl in stretches(fids):
+                if sl.stop - sl.start >= 3:
+                    pose_s[sl] = gaussian_filter1d(pose_s[sl], a.smooth, axis=0, mode="nearest")
         # nearest-solved-frame fill for the rows the scorer never reads
         idx = np.clip(np.searchsorted(fids, np.arange(T)), 0, len(fids) - 1)
         left = np.clip(idx - 1, 0, len(fids) - 1)

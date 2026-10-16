@@ -1,0 +1,52 @@
+{
+  "track": "track_1",
+  "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+  "message": "MHR body fit from 2D keypoints (object unchanged: isolates CD-H)",
+  "submissions": {
+    "cd_h_cm": {
+      "slug": "v2d-challenge-track1-cd-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-H (cm)",
+      "ref": 57272613,
+      "public_score": "84.82481",
+      "error": ""
+    },
+    "cd_o_cm": {
+      "slug": "v2d-challenge-track1-cd-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-O (cm)",
+      "ref": 57272614,
+      "public_score": "556.45362",
+      "error": ""
+    },
+    "acc_h_cm": {
+      "slug": "v2d-challenge-track1-acc-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-H (cm)",
+      "ref": 57272616,
+      "public_score": "1.35547",
+      "error": ""
+    },
+    "acc_o_cm": {
+      "slug": "v2d-challenge-track1-acc-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-O (cm)",
+      "ref": 57272619,
+      "public_score": "0.07429",
+      "error": ""
+    },
+    "interpenetration_cm": {
+      "slug": "v2d-challenge-track1-pen",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_human.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - PEN (cm)",
+      "ref": 57272620,
+      "public_score": "0.00000",
+      "error": ""
+    }
+  }
+}
