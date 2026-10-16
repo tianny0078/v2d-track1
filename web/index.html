@@ -1,0 +1,798 @@
+<title>V2D Track1 看板</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* ── tokens ─────────────────────────────────────────────────────────────── */
+:root{
+  color-scheme: light;
+  --bg:#f5f7f3; --panel:#fcfcfb; --panel-2:#edefe9; --panel-3:#e4e7df;
+  --line:#e0e3da; --line-2:#cdd1c6;
+  --ink:#10130e; --ink-2:#51554b; --ink-3:#83877a;
+  --accent:#2a78d6; --accent-ink:#1c5cab; --track:#cde2fb;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --good-bg:#e4f4e2; --warn-bg:#fdf0d3; --serious-bg:#fbe8de; --crit-bg:#f8e0e0;
+  --good-ink:#0a6b0a; --warn-ink:#7d5405; --serious-ink:#9a4a22; --crit-ink:#a32b2b;
+  --shadow:0 1px 2px rgba(16,19,14,.05), 0 1px 1px rgba(16,19,14,.04);
+  --font-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Source Han Sans SC","Microsoft YaHei",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --lbl:150px; --meta:132px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0e100d; --panel:#1a1a19; --panel-2:#232420; --panel-3:#2c2d28;
+    --line:#2e302b; --line-2:#41433c;
+    --ink:#f1f3ec; --ink-2:#adb0a4; --ink-3:#7c8074;
+    --accent:#3987e5; --accent-ink:#86b6ef; --track:#1b3a60;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --good-bg:#15301a; --warn-bg:#3a2d0c; --serious-bg:#3a2317; --crit-bg:#3a1818;
+    --good-ink:#5fd05f; --warn-ink:#f6c45a; --serious-ink:#f0a584; --crit-ink:#f07b7b;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0e100d; --panel:#1a1a19; --panel-2:#232420; --panel-3:#2c2d28;
+  --line:#2e302b; --line-2:#41433c;
+  --ink:#f1f3ec; --ink-2:#adb0a4; --ink-3:#7c8074;
+  --accent:#3987e5; --accent-ink:#86b6ef; --track:#1b3a60;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --good-bg:#15301a; --warn-bg:#3a2d0c; --serious-bg:#3a2317; --crit-bg:#3a1818;
+  --good-ink:#5fd05f; --warn-ink:#f6c45a; --serious-ink:#f0a584; --crit-ink:#f07b7b;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+
+/* ── base ───────────────────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
+
+/* ── topbar ─────────────────────────────────────────────────────────────── */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
+.mark{width:22px;height:22px;border-radius:5px;background:var(--accent);flex:none;position:relative}
+.mark::after{content:"";position:absolute;inset:6px 5px 6px 5px;border-radius:1px;border:1.5px solid var(--panel);border-right-color:transparent;transform:rotate(-20deg)}
+.brand{font-weight:600;letter-spacing:.01em;font-size:15px;white-space:nowrap}
+.brand small{display:block;font-weight:400;font-size:11px;color:var(--ink-3);letter-spacing:.04em}
+.topbar .sp{flex:1 1 40px}
+.feed{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);font-family:var(--font-mono);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none}
+.dot.stale{background:var(--warn)} .dot.err{background:var(--crit)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.dot.live{animation:pulse 2.4s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.dot.live{animation:none}}
+
+/* ── sections ───────────────────────────────────────────────────────────── */
+main{padding-block:0 56px}
+section{padding-block:30px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.shead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.eyebrow{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);flex:none}
+.shead h2{font-size:17px;letter-spacing:.01em}
+.shead .note{font-size:12px;color:var(--ink-3);flex:1 1 200px;min-width:0}
+.shead .note.right{text-align:right}
+
+/* ── hero ───────────────────────────────────────────────────────────────── */
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start;padding-block:26px 30px}
+.klabel{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.count{display:flex;align-items:baseline;gap:4px;margin-top:6px;flex-wrap:wrap}
+.count b{font-size:46px;font-weight:600;line-height:1.02;letter-spacing:-.02em}
+.count span{font-size:17px;color:var(--ink-2);font-weight:500;margin-right:10px}
+.deadline{margin-top:8px;font-size:12.5px;color:var(--ink-2);font-family:var(--font-mono)}
+.deadline em{font-style:normal;color:var(--ink-3)}
+.overall b{font-size:46px;font-weight:600;line-height:1.02;letter-spacing:-.02em}
+.overall .pc{font-size:22px;font-weight:500;color:var(--ink-2)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:22px}
+.tile{background:var(--panel);padding:11px 12px 12px}
+.tile .v{font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.tile .v s{text-decoration:none;font-size:12px;font-weight:500;color:var(--ink-3);margin-left:3px}
+.tile .k{font-size:11px;color:var(--ink-3);margin-top:1px}
+
+/* ── meters ─────────────────────────────────────────────────────────────── */
+.meter{height:8px;border-radius:2px;background:var(--track);overflow:hidden;position:relative}
+.meter.neutral{background:var(--panel-3)}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:2px 4px 4px 2px;transition:width .5s cubic-bezier(.3,.8,.3,1)}
+.meter.done i{background:var(--good)}
+.meter.warn i{background:var(--warn)} .meter.serious i{background:var(--serious)} .meter.crit i{background:var(--crit)}
+.meter.lg{height:12px}
+@media(prefers-reduced-motion:reduce){.meter i{transition:none}}
+
+/* ── stages ─────────────────────────────────────────────────────────────── */
+.stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stage{background:var(--panel);padding:12px 14px 13px;display:grid;grid-template-columns:26px 1fr auto;gap:4px 10px;align-items:baseline}
+.stage .n{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.stage .nm{font-weight:500;font-size:13.5px;min-width:0;display:flex;align-items:center;gap:6px}
+.stage .ct{font-family:var(--font-mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stage .ct b{color:var(--ink);font-weight:600}
+.stage .bar{grid-column:2/4;margin-top:3px}
+.stage .hint{grid-column:2/4;font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.45}
+.tick{color:var(--good);font-size:12px;flex:none}
+.spin{width:9px;height:9px;border-radius:50%;border:2px solid var(--accent);border-right-color:transparent;flex:none;display:inline-block}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3);margin-top:12px;align-items:center}
+.key i{display:inline-block;width:14px;height:7px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:14px}
+.controls label{font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+select,button.ghost{font-family:inherit;font-size:12.5px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line-2);border-radius:6px;padding:5px 8px;cursor:pointer}
+select:hover,button.ghost:hover{border-color:var(--ink-3)}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden}
+.seg button{font-family:inherit;font-size:12.5px;padding:5px 10px;border:0;background:var(--panel-2);color:var(--ink-2);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.controls .spacer{flex:1}
+.controls .cnt{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3)}
+
+/* ── table ──────────────────────────────────────────────────────────────── */
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:0;z-index:2;background:var(--panel-2);font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--ink-2);
+  text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:12.5px}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--panel-2)}
+td.num{text-align:right;font-family:var(--font-mono)}
+.grp td{background:var(--panel-2);font-weight:600;font-size:12px;padding:6px 10px}
+.grp .obj{display:inline-flex;align-items:center;gap:8px}
+.thumb{width:62px;height:47px;border-radius:4px;object-fit:cover;background:var(--panel-3);display:block;border:0;padding:0;cursor:zoom-in}
+.thumb.ph{display:grid;place-items:center;font-size:9px;color:var(--ink-3);font-family:var(--font-mono)}
+.epid{font-family:var(--font-mono);font-weight:600;font-size:12.5px}
+.obj-cn{color:var(--ink-3);font-size:11px;display:block}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;line-height:1.5;padding:1px 6px;border-radius:4px;
+  background:var(--panel-3);color:var(--ink-2);white-space:nowrap;font-family:var(--font-mono)}
+.chip.multi{background:var(--warn-bg);color:var(--warn-ink)}
+.chip.ext{background:var(--serious-bg);color:var(--serious-ink)}
+.chip.mine{background:var(--panel-3);color:var(--ink-2)}
+.chip.tag{background:transparent;border:1px solid var(--line-2);color:var(--ink-3);font-family:var(--font-sans)}
+.cov{display:inline-block;min-width:34px}
+.steps{display:inline-flex;gap:2px}
+.steps b{width:15px;height:15px;border-radius:3px;background:var(--panel-3);color:var(--ink-3);font-weight:500;
+  font-size:9px;display:grid;place-items:center;cursor:help}
+.steps b.on{background:var(--good);color:#fff}
+.sc{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-left:6px}
+.sc.all{color:var(--good-ink);font-weight:600}
+
+/* ── span chart ─────────────────────────────────────────────────────────── */
+.chart{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 14px 10px;overflow:hidden}
+.axis{display:grid;grid-template-columns:var(--lbl) minmax(0,1fr) var(--meta);gap:0 10px;align-items:end;
+  font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);padding-bottom:5px}
+.axis .ticks{position:relative;height:14px}
+.axis .ticks span{position:absolute;bottom:0;transform:translateX(-50%);white-space:nowrap}
+.axis .ticks span:first-child{transform:none}
+.srow{display:grid;grid-template-columns:var(--lbl) minmax(0,1fr) var(--meta);gap:0 10px;align-items:center;padding:1px 0;border-radius:4px}
+.srow:hover{background:var(--panel-2)}
+.srow .lb{font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;gap:6px;align-items:baseline}
+.srow .lb i{font-family:var(--font-mono);font-style:normal;color:var(--ink-3);font-size:10.5px;flex:none}
+.plot{position:relative;height:20px;background-image:repeating-linear-gradient(to right,var(--line) 0 1px,transparent 1px var(--gw,25%))}
+.plot .trk{position:absolute;top:50%;transform:translateY(-50%);left:0;height:10px;background:var(--panel-3);border-radius:2px}
+.plot .span{position:absolute;top:50%;transform:translateY(-50%);height:10px;background:var(--accent);border-radius:4px;min-width:3px}
+.plot .g90{position:absolute;top:-1px;bottom:-1px;width:1px;background:var(--line-2)}
+.srow .mt{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gbar{display:flex;align-items:center;gap:8px;margin:11px 0 3px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.gbar::after{content:"";flex:1;height:1px;background:var(--line)}
+.gbar .om{font-family:var(--font-mono);font-weight:400;color:var(--ink-3);font-size:10.5px}
+.ckey{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--ink-3);margin-top:12px;padding-top:10px;border-top:1px solid var(--line);align-items:center}
+.ckey i{display:inline-block;width:16px;height:8px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.ckey i.g{width:1px;height:12px;border-radius:0;vertical-align:-2px;background:var(--line-2)}
+
+/* ── hardware ───────────────────────────────────────────────────────────── */
+.gpus{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px}
+.gcard .gh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
+.gcard .gi{font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.gcard .gn{font-size:11.5px;color:var(--ink-3);line-height:1.35;margin-bottom:10px;min-height:2.7em}
+.gline{margin-top:9px}
+.gline .gl{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-bottom:3px}
+.gline .gl b{font-family:var(--font-mono);color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.temp{font-family:var(--font-mono);font-size:12px;font-weight:600;padding:1px 6px;border-radius:4px}
+.idle{font-size:11px;color:var(--ink-3)}
+.hw2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.pbox{background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.pbox h3{font-size:12.5px;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pbox h3 .sub{font-weight:400;font-size:11px;color:var(--ink-3)}
+.pbox table{min-width:380px}
+.empty{padding:18px 12px;text-align:center;color:var(--ink-3);font-size:12px}
+.empty b{display:block;color:var(--ink-2);font-size:13px;font-weight:500;margin-bottom:3px}
+.disk{padding:12px}
+.disk .dv{display:flex;align-items:baseline;gap:6px;margin-bottom:9px}
+.disk .dv b{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.disk .dv span{font-size:12px;color:var(--ink-3)}
+.scale{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-top:4px}
+.alarm{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;padding:8px 10px;border-radius:7px;
+  background:var(--serious-bg);color:var(--serious-ink)}
+.alarm.crit{background:var(--crit-bg);color:var(--crit-ink)}
+.alarm .ic{flex:none;font-weight:700}
+
+/* ── log ────────────────────────────────────────────────────────────────── */
+.log{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;font-size:12.5px;line-height:1.65}
+.log h3{font-size:13px;margin:0 0 4px}
+.log h4{font-size:11px;margin:16px 0 8px;font-family:var(--font-mono);letter-spacing:.08em;color:var(--ink-3);font-weight:500;
+  padding-bottom:5px;border-bottom:1px solid var(--line)}
+.log h4:first-child{margin-top:0}
+.log .li{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:4px 0;color:var(--ink-2)}
+.log .li .tm{font-family:var(--font-mono);font-size:11px;color:var(--accent-ink);padding-top:1px}
+.log .li .tx{min-width:0;overflow-wrap:anywhere}
+.log .para{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);color:var(--ink)}
+.log code{font-family:var(--font-mono);font-size:11.5px;background:var(--panel-2);padding:.5px 4px;border-radius:3px;color:var(--ink-2)}
+.log strong{color:var(--ink);font-weight:600}
+.log p.intro{color:var(--ink-3);font-size:11.5px}
+
+/* ── banner / modal / footer ────────────────────────────────────────────── */
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--crit-bg);color:var(--crit-ink);
+  border:1px solid var(--crit);border-radius:8px;padding:9px 12px;font-size:12.5px;margin-top:14px}
+.banner button{margin-left:auto}
+#ov{position:fixed;inset:0;z-index:90;background:rgba(10,12,9,.82);display:grid;place-items:center;padding:20px}
+#ov figure{margin:0;max-width:min(900px,100%);background:var(--panel);border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+#ov img{display:block;width:100%;height:auto;background:#000}
+#ov figcaption{padding:10px 14px;font-size:12px;color:var(--ink-2);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#ov figcaption b{color:var(--ink);font-family:var(--font-mono)}
+footer{border-top:1px solid var(--line);padding-block:18px 10px;font-size:11.5px;color:var(--ink-3)}
+footer code{font-family:var(--font-mono);font-size:11px}
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;gap:22px}
+  .stages{grid-template-columns:1fr}
+  .gpus{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hw2{grid-template-columns:1fr}
+  :root{--lbl:118px;--meta:104px}
+}
+@media(max-width:560px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gpus{grid-template-columns:1fr}
+  .count b,.overall b{font-size:38px}
+  :root{--lbl:84px;--meta:0px}
+  .axis,.srow{grid-template-columns:var(--lbl) minmax(0,1fr);gap:0 8px}
+  .srow .mt,.axis .mt{display:none}
+  .gcard .gn{min-height:0}
+}
+</style>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="mark" aria-hidden="true"></div>
+    <div class="brand">NVIDIA V2D Challenge · Track 1<small>单目视频 4D 人-物重建</small></div>
+    <div class="sp"></div>
+    <div class="feed"><span class="dot live" id="feedDot"></span><span id="feedTxt">载入中…</span></div>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+
+  <section class="hero" id="hero" aria-label="总览">
+    <div>
+      <div class="klabel">距提交冻结</div>
+      <div class="count"><b id="cdD">—</b><span>天</span><b id="cdH">—</b><span>小时</span></div>
+      <div class="deadline" id="cdLine">—</div>
+    </div>
+    <div class="overall">
+      <div class="klabel">11 阶段总体进度</div>
+      <div class="count"><b id="opct">—</b><span class="pc">%</span></div>
+      <div class="meter lg" style="margin-top:10px" id="opctMeter" role="img" aria-label="总体进度"><i style="width:0"></i></div>
+      <div class="deadline" id="opctNote">—</div>
+    </div>
+    <div class="tiles" style="grid-column:1/-1" id="tiles"></div>
+    <div id="banner" style="grid-column:1/-1" hidden></div>
+  </section>
+
+  <section id="secStages" aria-label="阶段进度">
+    <div class="shead">
+      <span class="eyebrow">Pipeline</span><h2>阶段进度</h2>
+      <p class="note">按 <code class="mono">state/</code> 下真实落盘的 <code class="mono">.done</code> 标记计数，不手写。</p>
+    </div>
+    <div class="stages" id="stages"></div>
+    <div class="key">
+      <span><i style="background:var(--good)"></i>已完成</span>
+      <span><i style="background:var(--accent)"></i>进行中</span>
+      <span><i style="background:var(--panel-3)"></i>未开始</span>
+      <span style="color:var(--ink-3)">物体网格按 10 个物体计（每物体 3 段共享一张网格），其余按 30 个 episode 计。</span>
+    </div>
+  </section>
+
+  <section id="secEp" aria-label="Episode 明细">
+    <div class="shead">
+      <span class="eyebrow">Episodes</span><h2>30 段明细</h2>
+      <p class="note">下方筛选与排序同时作用于本表与「接触评分区间」图。</p>
+    </div>
+    <div class="controls">
+      <label>排序
+        <select id="sortBy">
+          <option value="ep">序号</option><option value="object">物体</option><option value="camera">机位</option>
+          <option value="frames">总帧数</option><option value="scored">评分帧数</option>
+          <option value="cov">覆盖率</option><option value="stretches">接触段数</option><option value="done">完成阶段数</option>
+        </select>
+      </label>
+      <div class="seg" role="group" aria-label="排序方向">
+        <button type="button" id="ascBtn" aria-pressed="true">升序</button>
+        <button type="button" id="descBtn" aria-pressed="false">降序</button>
+      </div>
+      <label>机位
+        <select id="camF"><option value="">全部</option></select>
+      </label>
+      <label><input type="checkbox" id="grpChk" checked> 按物体分组</label>
+      <div class="spacer"></div>
+      <span class="cnt" id="epCount"></span>
+    </div>
+    <div class="tscroll">
+      <table id="epTable">
+        <thead><tr>
+          <th style="width:72px">缩略图</th><th>Episode</th><th>物体</th><th>机位</th>
+          <th class="num">总帧数</th><th class="num">评分帧</th><th class="num">覆盖率</th><th class="num">接触段</th>
+          <th>阶段 帧·分·人·位·优·包</th>
+        </tr></thead>
+        <tbody id="epBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="secSpan" aria-label="接触评分区间">
+    <div class="shead">
+      <span class="eyebrow">Scored span</span><h2>接触评分区间</h2>
+      <p class="note">每行 = 一段视频从第 0 帧到末帧；蓝条 = 首个到最后一个评分帧的接触跨度。全部行共用同一条帧轴，长度可直接横向比较。</p>
+    </div>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section id="secHw" aria-label="硬件">
+    <div class="shead">
+      <span class="eyebrow">Hardware</span><h2>机器状态</h2>
+      <p class="note">这台机器与他人共用，外部进程会抢占显存与算力。</p>
+    </div>
+    <div class="gpus" id="gpus"></div>
+    <div class="hw2">
+      <div class="pbox">
+        <h3>GPU 计算进程 <span class="sub" id="procSub"></span></h3>
+        <div id="procs"></div>
+      </div>
+      <div class="pbox">
+        <h3>磁盘 <span class="sub">挂载点 /</span></h3>
+        <div class="disk" id="disk"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="secLog" aria-label="进度日志">
+    <div class="shead">
+      <span class="eyebrow">Log</span><h2>进度日志</h2>
+      <p class="note"><code class="mono">notes/progress.md</code> 末 40 行，追加式，最新在最下。</p>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <footer>
+    数据由 <code>src/status.py</code> 从真实文件系统与 <code>nvidia-smi</code> 生成，写入 <code>web/status.json</code>；本页每 60 秒重新拉取一次。
+    冻结时间 2026-11-04 17:00 EST，获奖公布 11-12。
+  </footer>
+</main>
+
+<div id="ov" hidden><figure><img id="ovImg" alt=""><figcaption id="ovCap"></figcaption></figure></div>
+
+<script type="application/json" id="snapshot">{"generated_at":"2026-10-16T07:01:53+00:00","deadline":"2026-11-04T17:00:00-05:00","hours_left":471.0,"overall_pct":37.3,"stages":[{"key":"env","label":"环境与依赖","done":1,"total":1,"pct":100.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"data","label":"数据下载与核对","done":30,"total":30,"pct":100.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"mhr_gate","label":"MHR 接口回环","done":1,"total":1,"pct":100.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"frames","label":"抽帧 / 评分窗口缓存","done":30,"total":30,"pct":100.0,"last_at":"2026-10-16T06:53:45+00:00","rate_per_hour":1614.5,"eta_hours":null},{"key":"seg","label":"人+物分割","done":2,"total":30,"pct":6.7,"last_at":"2026-10-16T07:01:49+00:00","rate_per_hour":32.6,"eta_hours":0.9},{"key":"body","label":"SAM 3D Body → MHR","done":0,"total":30,"pct":0.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"objmesh","label":"物体网格 (10 物体)","done":0,"total":10,"pct":0.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"objpose","label":"物体 6D 跟踪","done":0,"total":30,"pct":0.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"joint","label":"联合优化 + 接触/穿透","done":0,"total":30,"pct":0.0,"last_at":null,"rate_per_hour":null,"eta_hours":null},{"key":"pack","label":"打包 parquet","done":1,"total":30,"pct":3.3,"last_at":"2026-10-16T06:51:02+00:00","rate_per_hour":null,"eta_hours":null},{"key":"submit","label":"Kaggle 提交","done":0,"total":1,"pct":0.0,"last_at":null,"rate_per_hour":null,"eta_hours":null}],"gpus":[{"index":0,"name":"RTX PRO 6000 Blackwell Max-Q Workstation Edition","mem_used":849,"mem_total":97887,"util":0,"temp":50},{"index":1,"name":"RTX PRO 6000 Blackwell Max-Q Workstation Edition","mem_used":3,"mem_total":97887,"util":0,"temp":48},{"index":2,"name":"RTX PRO 6000 Blackwell Max-Q Workstation Edition","mem_used":3,"mem_total":97887,"util":0,"temp":41},{"index":3,"name":"RTX PRO 6000 Blackwell Max-Q Workstation Edition","mem_used":4049,"mem_total":97887,"util":0,"temp":71}],"gpu_procs":[{"gpu":0,"pid":2643635,"name":"python3","mem":840,"user":"tianyuan","mine":true},{"gpu":3,"pid":2643635,"name":"python3","mem":4040,"user":"tianyuan","mine":true}],"disk":{"total_gb":3936,"free_gb":300,"used_pct":87.3,"by_dir":{"data":0.51,"work":9.33,"state":0.0,"web":0.0,"logs":0.0}},"objects":[{"name":"big_red_bowl","prompt":"A red plastic bowl.","episodes":[3,4,5],"mesh_done":false},{"name":"black_pan","prompt":"a black frying pan.","episodes":[12,13,14],"mesh_done":false},{"name":"foam_grass_block","prompt":"a foam block with a pixalated design of various shades of green and various shades of brown.","episodes":[15,16,17],"mesh_done":false},{"name":"hula_hoop","prompt":"a shiny skinny hula hoop.","episodes":[0,1,2],"mesh_done":false},{"name":"iron","prompt":"An metallic iron with blue accents.","episodes":[6,7,8],"mesh_done":false},{"name":"paint_roller","prompt":"white with yellow stipped paint roller with a blue handle.","episodes":[18,19,20],"mesh_done":false},{"name":"pink_foam_roll","prompt":"pink foam roll.","episodes":[21,22,23],"mesh_done":false},{"name":"short_wood_stool","prompt":"short wooden stool with no back support.","episodes":[24,25,26],"mesh_done":false},{"name":"white_desk","prompt":"a medium sized white desk.","episodes":[9,10,11],"mesh_done":false},{"name":"white_laptop_cart","prompt":"white_laptop_cart.","episodes":[27,28,29],"mesh_done":false}],"blockers":[{"id":"B-1","what":"kit 需 Python 3.11+（`kaggle>=2.0`），本机仅 3.10","status":"待办：建独立 3.11 环境","open":true},{"id":"B-2","what":"五个 Kaggle 竞赛的每日提交上限 + 规则接受","status":"待办：需 Kaggle 账号/token","open":true},{"id":"B-3","what":"`gh` 未登录；提交需要公开 commit URL","status":"待办：需 GitHub 仓库 + `gh auth login`","open":true},{"id":"B-4","what":"`role_alignment/body/left_hand/right_hand` 顶点索引未随 kit 发布","status":"以 MHR 蒙皮权重近似；可向组织者索取","open":false},{"id":"B-5","what":"五指标最终聚合方式（官网两轴等权 vs FAQ 名次求和）","status":"向组织者确认；两种下策略不变","open":false},{"id":"B-6","what":"GPU 可能被其他进程占用","status":"已纳入调度与监控","open":false}],"failures":[],"submissions":[],"running":[{"pid":2643635,"script":"segment","cmd":"python3 src/segment.py","log":"logs/segment.log"}],"episodes":[{"ep":0,"object":"hula_hoop","camera":"back_stereo_camera_left","sequence":"2026-03-16_15-04-26_hula_hoop_inside_ground_01","prompt":"a shiny skinny hula hoop.","task":"Walk over to the hula hoop on the floor and step inside the hula hoop. Lift the hula hoop over your entire body and place back on the floor when done.","frames":790,"scored":169,"stretches":6,"first":90,"last":699,"spans":[[90,109],[136,151],[184,254],[270,278],[288,302],[662,699]],"thumb_frame":394,"done":["frames","seg"],"failed":[]},{"ep":1,"object":"hula_hoop","camera":"back_stereo_camera_left","sequence":"2026-03-16_15-07-35_hula_hoop_through_01","prompt":"a shiny skinny hula hoop.","task":"Walk over to the hula hoop on the floor and grasp it with your right hand keeping the hula hoop vertical. Pass your right foot  through the hula hoop and then your head and torso while shifting the hula hoop from your right hand to the left hand. Finally step through the hula hoop using your left leg. Place the hula hoop on the floor.","frames":668,"scored":174,"stretches":6,"first":151,"last":461,"spans":[[151,159],[214,246],[298,341],[355,389],[401,415],[424,461]],"thumb_frame":306,"done":["frames","seg"],"failed":[]},{"ep":2,"object":"hula_hoop","camera":"back_stereo_camera_left","sequence":"2026-04-25_14-46-14_hula_hoop_jump_rope_06","prompt":"a shiny skinny hula hoop.","task":"Walk over to the hula hoop on the floor and pick up the hula hoop using both hands. Jump through the hula hoop as if it was a jump rope 3x.","frames":866,"scored":84,"stretches":3,"first":236,"last":786,"spans":[[236,243],[401,418],[729,786]],"thumb_frame":511,"done":["frames"],"failed":[]},{"ep":3,"object":"big_red_bowl","camera":"left_stereo_camera_left","sequence":"2026-06-03_18-26-12_big_red_bowl_flip_03","prompt":"A red plastic bowl.","task":"Walk over to the big red bowl on the round table and flip the big red bowl onto the round table. Step away when complete.","frames":592,"scored":340,"stretches":7,"first":90,"last":501,"spans":[[90,113],[135,177],[184,198],[206,384],[393,400],[411,438],[459,501]],"thumb_frame":295,"done":["frames"],"failed":[]},{"ep":4,"object":"big_red_bowl","camera":"front_stereo_camera_left","sequence":"2026-06-08_15-30-20_big_red_bowl_push_05","prompt":"A red plastic bowl.","task":"Walk over to the big red bowl on the round table and push the red bowl away you using both hands as you walk around the round table. Step away when complete.","frames":747,"scored":519,"stretches":2,"first":125,"last":649,"spans":[[125,136],[143,649]],"thumb_frame":387,"done":["frames"],"failed":[]},{"ep":5,"object":"big_red_bowl","camera":"front_stereo_camera_left","sequence":"2026-06-09_11-19-34_big_red_bowl_skinny_wood_chair_05","prompt":"A red plastic bowl.","task":"Walk over to the big red bowl on the floor and pick up the red bowl using your right hand and then handover to your left hand and then place the big red bowl on the skinny wood chair. Step away when complete.","frames":668,"scored":412,"stretches":6,"first":90,"last":577,"spans":[[90,154],[194,272],[279,322],[329,351],[363,481],[496,577]],"thumb_frame":333,"done":["frames"],"failed":[]},{"ep":6,"object":"iron","camera":"left_stereo_camera_left","sequence":"2026-05-29_15-24-23_iron_pick_place_right_left_hand_02","prompt":"An metallic iron with blue accents.","task":"Walk over to the iron on the round table and pick it up with your right hand stand it up vertically. Pick up the iron with your left hand and set it down horizontally on the round table.","frames":816,"scored":636,"stretches":1,"first":90,"last":725,"spans":[[90,725]],"thumb_frame":407,"done":["frames"],"failed":[]},{"ep":7,"object":"iron","camera":"left_stereo_camera_left","sequence":"2026-06-08_15-54-40_iron_rotate_mid_air_04","prompt":"An metallic iron with blue accents.","task":"Walk over to the iron on the floor and pick up the iron using both hands and rotate the iron as you walk within the bounding area and place it on the ground, step away when complete.","frames":777,"scored":597,"stretches":1,"first":90,"last":686,"spans":[[90,686]],"thumb_frame":388,"done":["frames"],"failed":[]},{"ep":8,"object":"iron","camera":"right_stereo_camera_left","sequence":"2026-06-09_11-34-07_iron_ground_05","prompt":"An metallic iron with blue accents.","task":"Walk over to the iron on the ground and kneel near the iron and pick up the iron using your right hand and proceed to iron the ground infront of you. Place the iron on the ground when complete and stand up.","frames":634,"scored":454,"stretches":1,"first":90,"last":543,"spans":[[90,543]],"thumb_frame":316,"done":["frames"],"failed":[]},{"ep":9,"object":"white_desk","camera":"front_stereo_camera_left","sequence":"2026-03-12_16-43-03_white_desk_side_to_side_01","prompt":"a medium sized white desk.","task":"Walk to the white desk that is lying on its side. Place both hands on it and use them to carefully flip the desk onto the other side.","frames":415,"scored":325,"stretches":1,"first":90,"last":414,"spans":[[90,414]],"thumb_frame":252,"done":["frames"],"failed":[]},{"ep":10,"object":"white_desk","camera":"left_stereo_camera_left","sequence":"2026-03-13_11-18-20_white_desk_left_foot_push_04","prompt":"a medium sized white desk.","task":"Walk to the white desk, use your left foot to push the desk.","frames":577,"scored":418,"stretches":1,"first":90,"last":507,"spans":[[90,507]],"thumb_frame":298,"done":["frames"],"failed":[]},{"ep":11,"object":"white_desk","camera":"left_stereo_camera_left","sequence":"2026-04-29_14-21-44_white_desk_lower_to_ground_09","prompt":"a medium sized white desk.","task":"Walk to the white desk, use both your hands to grasp on the edge of the table closest to you, and lower the desk to the ground.","frames":877,"scored":803,"stretches":1,"first":0,"last":802,"spans":[[0,802]],"thumb_frame":401,"done":["frames"],"failed":[]},{"ep":12,"object":"black_pan","camera":"front_stereo_camera_left","sequence":"2026-09-11_15-27-19_black_pan_wipe_06","prompt":"a black frying pan.","task":"Pick up the pan from the table using one hand. Take a few steps away from the table. Using your other hand, touch the bottom of the pan with your palm, and make some circular motions to wipe it. Walk back to the table and put the pan down.","frames":405,"scored":209,"stretches":5,"first":69,"last":365,"spans":[[69,138],[152,178],[195,244],[251,264],[318,365]],"thumb_frame":217,"done":["frames"],"failed":[]},{"ep":13,"object":"black_pan","camera":"left_stereo_camera_left","sequence":"2026-09-11_15-28-23_black_pan_wipe_07","prompt":"a black frying pan.","task":"Pick up the pan from the table using one hand. Take a few steps away from the table. Using your other hand, touch the bottom of the pan with your palm, and make some circular motions to wipe it. Walk back to the table and put the pan down.","frames":425,"scored":106,"stretches":4,"first":75,"last":370,"spans":[[75,120],[140,154],[257,270],[340,370]],"thumb_frame":222,"done":["frames"],"failed":[]},{"ep":14,"object":"black_pan","camera":"front_stereo_camera_left","sequence":"2026-09-11_15-55-29_black_pan_wipe_08","prompt":"a black frying pan.","task":"Pick up the pan from the table using one hand. Take a few steps away from the table. Using your other hand, touch the bottom of the pan with your palm, and make some circular motions to wipe it. Walk back to the table and put the pan down.","frames":442,"scored":83,"stretches":4,"first":90,"last":387,"spans":[[90,109],[116,133],[336,351],[359,387]],"thumb_frame":238,"done":["frames"],"failed":[]},{"ep":15,"object":"foam_grass_block","camera":"right_stereo_camera_left","sequence":"2026-09-10_16-14-06_foam_grass_block_rotate_02","prompt":"a foam block with a pixalated design of various shades of green and various shades of brown.","task":"Pick up the block from the table with both hands. Hold it by two opposite corners. Slowly rotate it several rotations while maintaining contact. Put it back on the table.","frames":501,"scored":356,"stretches":1,"first":81,"last":436,"spans":[[81,436]],"thumb_frame":258,"done":["frames"],"failed":[]},{"ep":16,"object":"foam_grass_block","camera":"front_stereo_camera_left","sequence":"2026-09-11_15-12-36_foam_grass_block_rotate_04","prompt":"a foam block with a pixalated design of various shades of green and various shades of brown.","task":"Pick up the block from the table with both hands. Hold it by two opposite corners. Slowly rotate it several rotations while maintaining contact. Put it back on the table.","frames":360,"scored":240,"stretches":1,"first":50,"last":289,"spans":[[50,289]],"thumb_frame":169,"done":["frames"],"failed":[]},{"ep":17,"object":"foam_grass_block","camera":"left_stereo_camera_left","sequence":"2026-09-11_15-53-19_foam_grass_block_pick_place_05","prompt":"a foam block with a pixalated design of various shades of green and various shades of brown.","task":"Pick up the block from the table with both hands. Shift to holding it with one hand from the bottom. take a few steps back and face a different direction. Hold it with both hands again, and put it on the ground.","frames":419,"scored":277,"stretches":1,"first":75,"last":351,"spans":[[75,351]],"thumb_frame":213,"done":["frames"],"failed":[]},{"ep":18,"object":"paint_roller","camera":"back_stereo_camera_left","sequence":"2026-09-10_15-45-17_paint_roller_table_roll_03","prompt":"white with yellow stipped paint roller with a blue handle.","task":"Pick up the roller on the table. Slowly roll the roller back and forth on the table surface a few times while moving around the table. Lay the roller back on the table and step back.","frames":535,"scored":420,"stretches":1,"first":72,"last":491,"spans":[[72,491]],"thumb_frame":281,"done":["frames"],"failed":[]},{"ep":19,"object":"paint_roller","camera":"left_stereo_camera_left","sequence":"2026-09-11_15-00-57_paint_roller_table_roll_04","prompt":"white with yellow stipped paint roller with a blue handle.","task":"Pick up the roller on the table. Slowly roll the roller back and forth on the table surface a few times while moving around the table. Lay the roller back on the table and step back.","frames":443,"scored":283,"stretches":1,"first":90,"last":372,"spans":[[90,372]],"thumb_frame":231,"done":["frames"],"failed":[]},{"ep":20,"object":"paint_roller","camera":"left_stereo_camera_left","sequence":"2026-09-11_15-45-25_paint_roller_table_roll_05","prompt":"white with yellow stipped paint roller with a blue handle.","task":"Pick up the roller on the table. Slowly roll the roller back and forth on the table surface a few times while moving around the table. Lay the roller back on the table and step back.","frames":549,"scored":375,"stretches":2,"first":90,"last":483,"spans":[[90,324],[344,483]],"thumb_frame":286,"done":["frames"],"failed":[]},{"ep":21,"object":"pink_foam_roll","camera":"left_stereo_camera_left","sequence":"2026-09-10_15-52-02_pink_foam_roll_tap_03","prompt":"pink foam roll.","task":"Walk over to the pink foam roll, and pick it up from the ground. Hold it from one end using one hand. Touch the other end of the roll on the ground a few times. Switch to the other hand and do the same. Put the roll back on the ground.","frames":563,"scored":347,"stretches":1,"first":90,"last":436,"spans":[[90,436]],"thumb_frame":263,"done":["frames"],"failed":[]},{"ep":22,"object":"pink_foam_roll","camera":"front_stereo_camera_left","sequence":"2026-09-10_15-57-50_pink_foam_roll_table_001","prompt":"pink foam roll.","task":"Pick up the foam roll on the table. Use your hands to slowly roll the roller back and forth on the table surface a few times while walking along with it. Lay the roller back on the table and step back.","frames":533,"scored":452,"stretches":1,"first":18,"last":469,"spans":[[18,469]],"thumb_frame":243,"done":["frames"],"failed":[]},{"ep":23,"object":"pink_foam_roll","camera":"front_stereo_camera_left","sequence":"2026-09-11_15-04-48_pink_foam_roll_tap_04","prompt":"pink foam roll.","task":"Walk over to the pink foam roll, and pick it up from the ground. Hold it from one end using one hand. Touch the other end of the roll on the ground a few times. Switch to the other hand and do the same. Put the roll back on the ground.","frames":552,"scored":399,"stretches":1,"first":90,"last":488,"spans":[[90,488]],"thumb_frame":289,"done":["frames"],"failed":[]},{"ep":24,"object":"short_wood_stool","camera":"front_stereo_camera_left","sequence":"2026-09-10_16-02-58_short_wood_stool_sit_rotate_001","prompt":"short wooden stool with no back support.","task":"Walk up to the wooden stool and sit on the stool. Rotate the direction you're facing while remaining seated. Stand up.","frames":420,"scored":242,"stretches":1,"first":61,"last":302,"spans":[[61,302]],"thumb_frame":181,"done":["frames"],"failed":[]},{"ep":25,"object":"short_wood_stool","camera":"right_stereo_camera_left","sequence":"2026-09-10_16-08-39_short_wood_stool_pick_place_02","prompt":"short wooden stool with no back support.","task":"Pick up the wooden stool from the ground using both hands. Let go of one hand and take a few steps. hold the stool with both hands again and place it back on the ground.","frames":365,"scored":219,"stretches":1,"first":90,"last":308,"spans":[[90,308]],"thumb_frame":199,"done":["frames"],"failed":[]},{"ep":26,"object":"short_wood_stool","camera":"right_stereo_camera_left","sequence":"2026-09-11_15-49-16_short_wood_stool_sit_rotate_05","prompt":"short wooden stool with no back support.","task":"Walk up to the wooden stool and sit on the stool. Rotate the direction you're facing while remaining seated. Stand up.","frames":399,"scored":281,"stretches":1,"first":85,"last":365,"spans":[[85,365]],"thumb_frame":225,"done":["frames"],"failed":[]},{"ep":27,"object":"white_laptop_cart","camera":"right_stereo_camera_left","sequence":"2026-09-10_15-07-44_white_laptop_cart_place_down_01","prompt":"white_laptop_cart.","task":"Use both hands to pick up the white laptop cart, then lay it down sideways on the ground. Release it and stand up.","frames":440,"scored":243,"stretches":1,"first":84,"last":326,"spans":[[84,326]],"thumb_frame":205,"done":["frames"],"failed":[]},{"ep":28,"object":"white_laptop_cart","camera":"back_stereo_camera_left","sequence":"2026-09-10_15-36-27_white_laptop_cart_place_down_02","prompt":"rolling white laptop desk with cup holder and basket.","task":"Use both hands to pick up the white laptop cart, then lay it down sideways on the ground. Release it and stand up.","frames":366,"scored":147,"stretches":1,"first":90,"last":236,"spans":[[90,236]],"thumb_frame":163,"done":["frames"],"failed":[]},{"ep":29,"object":"white_laptop_cart","camera":"left_stereo_camera_left","sequence":"2026-09-10_15-38-09_white_laptop_cart_push_pull_003","prompt":"rolling white laptop desk with cup holder and basket.","task":"Step up to the white laptop cart, and use one hand to push it forward a few steps. Put both hands on the cart, and pull it side ways a few steps. Release the cart and step away.","frames":419,"scored":267,"stretches":1,"first":38,"last":304,"spans":[[38,304]],"thumb_frame":171,"done":["frames"],"failed":[]}],"artifacts":["ep000000.jpg","ep000001.jpg","ep000002.jpg","ep000003.jpg","ep000004.jpg","ep000005.jpg","ep000006.jpg","ep000007.jpg","ep000008.jpg","ep000009.jpg","ep000010.jpg","ep000011.jpg","ep000012.jpg","ep000013.jpg","ep000014.jpg","ep000015.jpg","ep000016.jpg","ep000017.jpg","ep000018.jpg","ep000019.jpg","ep000020.jpg","ep000021.jpg","ep000022.jpg","ep000023.jpg","ep000024.jpg","ep000025.jpg","ep000026.jpg","ep000027.jpg","ep000028.jpg","ep000029.jpg","seg_ep000000.jpg"],"log_tail":["- `23:47` **格式** · ⭐ 读完 `_episode_penetration` · **PEN 是自指的**：用我们自己的手点打我们自己的网格，","  真值仅通过首帧 Sim(3) 的 scale 标量进入。→ **PEN 可本地精确优化到 ~0**，五榜之一近乎免费。","- `23:47` **规则** · `tracks.json` 注释：`private_fraction is 0` · **榜单全公开，没有 private 洗牌** →","  提交策略由\"省着用\"改为\"尽早频繁提交，榜单即验证集\"。","- `23:48` **Gate A** · MHR TorchScript 跑通（Blackwell）· sha256 与官方一致；","  `forward(identity[B,45], model_params[B,204], face_expr[B,72])` → `verts[B,18439,3] / joints[B,127,8]`；","  **0.51 ms/帧，峰值 1.07GB**；`diag(1,-1,-1)·v/100` 后身高 **1.727m** ✅ 单位与坐标约定核对通过。","  → **MHR 接口风险拆除**（v1 的头号风险）。","- `23:50` **计划** · 写出 `notes/00-plan-v2.md`，相对 v1 共 10 处实质修订（见该文件 §8）。","- `23:50` **基建** · `src/status.py` + `web/status.json` + 30 张接触区间中点缩略图。","","**下一步**：抽帧缓存（只缓存评分窗口+前导）→ 分割 → SAM 3D Body → 零基线提交打通 packer。","","## 2026-10-16（凌晨）","","- `00:05` **Gate B 通过 · 输出契约** · 造 30 个基线 NPZ（MHR rest pose + 单位盒）跑官方","  `eval_reconstruction.py` → **740,780 行，3.5MB，4.3 秒**，`row_id` 与 sample **逐行完全一致**，","  全部有限值。→ packer / 输出格式风险拆除。","  副产物：packer 会对网格质量告警（\"very low detail / box-like primitive\"），","  说明**组织者会审查网格**，最终提交不能用几何占位符。","- `00:12` **工具 · MHR 角色顶点** · 从 TorchScript 里直接取出骨架与蒙皮","  （`joint_parents[127]`、`skin_{indices,weights}_flattened[51337]`、`faces[36874,3]`、`rest_vertices[18439,3]`）。","  按\"主导关节属于腕关节子树\"推出手部顶点：**每只手 2318 个，bbox 14×12×15 cm** ✅ 形状正确。","  这是 host 那 512 个手点的**超集** —— 超集上无穿透 ⟹ 子集上无穿透，正是 PEN 优化需要的性质。","  `role_body`（64 点）与 `role_alignment` 用 FPS 代理，**明确标注为消融信号而非榜单预测**。","- `00:20` **Gate C 通过 · 本地精确 PEN** · `src/score_local.py` 复用 host 自己的","  `penetration_depth / symmetric_chamfer_distance / acceleration_error_per_frame / stretches`。","  敏感性验证（盒子逐步移离右手）：","  `0.00m → 5.30cm · 0.05m → 4.55cm · 0.10m → 2.67cm · 0.20m → 0.012cm · 0.40m → 0.000cm`","  单调且量纲正确。→ **PEN 现在是一个可以本地直接优化的目标函数，不需要任何榜单反馈。**","- `00:22` **数据** · 启动抽帧（只从 `first_scored - 30` 开始，JPEG q2，文件名即真实视频帧号）。","- `00:45` **凭证阻塞** · `facebook/sam-3d-body-dinov3` 与 `facebook/sam-3d-objects` 都是 **gated repo**，","  本机无 HF token / Kaggle token / gh 登录 / git identity。→ 阻塞项 B-1~B-3 升级，需要人工介入。","  未被阻塞的替代链路已就位：**OWLv2-large（文本→框）+ SAM 2.1-hiera-large（框→掩码+视频传播）**，两者均未受限。","- `00:50` **分割链路跑通** · ep0：seed=首个评分帧 90，前后双向传播 **730/730 帧无丢失**；","  物体检测分 0.638、人 0.159（偏低，已目视核验）。掩码 bit-packed 存储，**1.4MB/episode**。","  目视核验（`web/assets/seg_ep000000.jpg`）：人与呼啦圈都正确，且**正确避开了桌边的旁观者**。","  新观察：① 相机视角很宽，人在画面里只占约 1/6 高度 → SAM 3D Body 必须**先裁剪人体再推理**；","  ② 场景里有第二个人（操作员）坐在桌边，是持续的干扰源；③ 地面平整 → **地面接触可作为度量尺度的强先验**。","- `00:52` **全量分割启动**（30 段，后台）。"]}</script>
+<script>
+(function(){
+"use strict";
+
+/* ── 领域词表：物体中文名与几何难点（来自 notes/00-plan-v2.md §1） ───────── */
+var OBJ = {
+  hula_hoop:        {cn:"呼啦圈",       tag:"细长薄环",   why:"掩码细、CD-O 对朝向极敏感、PEN 易误判（手环绕但不穿透）"},
+  big_red_bowl:     {cn:"大红碗",       tag:"绕轴对称",   why:"旋转对称，朝向翻转风险高"},
+  iron:             {cn:"熨斗",         tag:"",           why:""},
+  white_desk:       {cn:"白书桌",       tag:"大件家具",   why:"尺寸远超常见 HOI 数据集，单目深度/尺度先验会系统性偏小"},
+  black_pan:        {cn:"黑平底锅",     tag:"近旋转对称", why:"柄破对称，但朝向翻转风险仍高"},
+  foam_grass_block: {cn:"泡沫草块",     tag:"立方 24 重", why:"近似立方体 → 24 重离散对称"},
+  paint_roller:     {cn:"滚筒刷",       tag:"细长+对称",  why:"细长且旋转对称，朝向翻转风险最高"},
+  pink_foam_roll:   {cn:"粉色泡沫卷",   tag:"细长+对称",  why:"细长且旋转对称，朝向翻转风险最高"},
+  short_wood_stool: {cn:"矮木凳",       tag:"大件家具",   why:"尺寸大，单目尺度先验偏小"},
+  white_laptop_cart:{cn:"白色推车",     tag:"大件家具",   why:"尺寸大，单目尺度先验偏小"}
+};
+var CAM = {back:"后",front:"前",left:"左",right:"右"};
+/* episode 级阶段：与 src/status.py 的 stage_names 一致 */
+var EPSTAGES = [
+  ["frames","帧","抽帧 / 评分窗口缓存"],["seg","分","人 + 物分割"],["body","人","SAM 3D Body → MHR"],
+  ["objpose","位","物体 6D 跟踪"],["joint","优","联合优化 + 接触/穿透"],["pack","包","打包 parquet"]
+];
+var STAGE_HINT = {
+  env:"models/mhr_model.pt 落盘即计 1；torch 2.9.1+cu128，4 卡可见。",
+  data:"30 个 exo_camera mp4，490 MB / 1536×1152 / 30fps，data/ 不含任何真值。",
+  mhr_gate:"Gate A：TorchScript 前向 0.51 ms/帧，身高 1.727 m，单位与坐标约定已核对。",
+  frames:"只缓存评分窗口 + 前导：全量 PNG 约 80 GB，磁盘放不下。",
+  seg:"SAM 3 分人 + 目标物，object_prompt 可直接作文本提示。",
+  body:"每段身份 scales / shape 固定，根平移保持 MHR 原生单位（cm）。",
+  objmesh:"每个物体的 3 段共享同一张网格 —— 统一尺度、消除 CD-O 几何方差。",
+  objpose:"可微渲染 + 掩码/轮廓对齐的直接优化，不默认 FoundationPose。",
+  joint:"接触是全程主约束；穿透走硬约束，PEN 可本地精确优化到 ~0。",
+  pack:"固定 4096 顶点 + 4096 面预算，尾部补零面。",
+  submit:"private_fraction = 0，榜单即最终分数 —— 尽早、频繁、带消融地提交。"
+};
+
+/* ── 工具 ───────────────────────────────────────────────────────────────── */
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function n(v){ return (v==null||isNaN(v))?0:v; }
+function fmt(v){ return v==null?"—":Number(v).toLocaleString("en-US"); }
+function pct1(v){ return (Math.round(v*10)/10).toFixed(1); }
+function camShort(c){ var k=String(c||"").split("_")[0]; return CAM[k]||k; }
+function el(tag,cls,html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+
+/* ── 状态 ───────────────────────────────────────────────────────────────── */
+var DATA=null, LIVE=false, ui={sort:"ep",asc:true,cam:"",group:true};
+
+function boot(){
+  var snap=null;
+  try{ snap=JSON.parse($("snapshot").textContent); }catch(e){}
+  if(snap){ DATA=snap; renderAll(); setFeed("snapshot"); }
+  refresh();
+  setInterval(refresh,60000);
+  wire();
+}
+
+function refresh(){
+  var url="./status.json?t="+Date.now();
+  fetch(url,{cache:"no-store"}).then(function(r){
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    if(!j||!Array.isArray(j.stages)) throw new Error("格式不符");
+    DATA=j; LIVE=true; renderAll(); setFeed("ok"); hideBanner();
+  }).catch(function(err){
+    if(!LIVE) setFeed("err"); else setFeed("stale");
+    showBanner(err && err.message ? err.message : "未知错误");
+  });
+}
+
+function setFeed(mode){
+  var d=$("feedDot"), t=$("feedTxt");
+  var gen = DATA && DATA.generated_at ? new Date(DATA.generated_at) : null;
+  var ageTxt="";
+  if(gen && !isNaN(gen)){
+    var m=Math.round((Date.now()-gen.getTime())/60000);
+    ageTxt = m<1?"刚刚":(m<60?m+" 分钟前":(m<1440?Math.floor(m/60)+" 小时前":Math.floor(m/1440)+" 天前"));
+  }
+  d.className="dot"+(mode==="ok"?" live":"")+(mode==="err"?" err":"")+(mode==="snapshot"||mode==="stale"?" stale":"");
+  if(mode==="err") t.textContent="拉取失败 · 显示内置快照";
+  else if(mode==="stale") t.textContent="刷新失败 · 数据 "+ageTxt;
+  else if(mode==="snapshot") t.textContent="内置快照 · "+ageTxt;
+  else t.textContent="数据 "+ageTxt+" · 每 60 秒刷新";
+}
+function showBanner(msg){
+  var b=$("banner");
+  b.hidden=false; b.className="banner";
+  b.innerHTML='<span>⚠ 无法读取 <code class="mono">./status.json</code>（'+esc(msg)+'）。下方为页面内置的最后一份快照，'+
+    '不是实时数据。</span><button class="ghost" type="button" id="retry">立即重试</button>';
+  $("retry").onclick=function(){ refresh(); };
+}
+function hideBanner(){ $("banner").hidden=true; }
+
+/* ── 渲染 ───────────────────────────────────────────────────────────────── */
+function renderAll(){
+  if(!DATA) return;
+  renderHero(); renderStages(); renderFilters(); renderEpisodes(); renderChart();
+  renderGpus(); renderProcs(); renderDisk(); renderLog();
+}
+
+function renderHero(){
+  var h=n(DATA.hours_left), d=Math.floor(h/24), hh=Math.max(0,Math.round(h-d*24));
+  if(hh===24){ d+=1; hh=0; }
+  $("cdD").textContent=d; $("cdH").textContent=hh;
+  var dl=DATA.deadline?new Date(DATA.deadline):null;
+  var dlTxt = dl&&!isNaN(dl) ? dl.toLocaleString("zh-CN",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "—";
+  $("cdLine").innerHTML="冻结 "+esc(dlTxt)+" EST · 剩余 <em>"+pct1(h)+" 小时</em>";
+
+  var p=n(DATA.overall_pct);
+  $("opct").textContent=pct1(p);
+  var m=$("opctMeter"); m.firstChild.style.width=Math.max(0,Math.min(100,p))+"%";
+  m.className="meter lg"+(p>=100?" done":"");
+  m.setAttribute("aria-label","总体进度 "+pct1(p)+"%");
+  var sdone=(DATA.stages||[]).filter(function(s){return s.pct>=100;}).length;
+  $("opctNote").innerHTML="11 个阶段百分比的等权平均 · 已完成 <em>"+sdone+" / "+(DATA.stages||[]).length+" 个阶段</em>";
+
+  var eps=DATA.episodes||[];
+  var tf=0,ts=0,multi=0,objs={};
+  eps.forEach(function(e){ tf+=n(e.frames); ts+=n(e.scored); if(n(e.stretches)>1)multi++; if(e.object)objs[e.object]=1; });
+  var tiles=[
+    [fmt(eps.length),"","Episode（10 物体 × 3 段）"],
+    [fmt(tf),"帧","视频总帧数 1536×1152 / 30fps"],
+    [fmt(ts),"帧",'评分帧 = 手物接触区间 · '+(tf?pct1(100*ts/tf):"0.0")+"%"],
+    [fmt(multi),"段",'多段 episode（段间 gap 不计 ACC）']
+  ];
+  $("tiles").innerHTML=tiles.map(function(t){
+    return '<div class="tile"><div class="v">'+t[0]+(t[1]?'<s>'+t[1]+'</s>':'')+'</div><div class="k">'+t[2]+'</div></div>';
+  }).join("");
+}
+
+function renderStages(){
+  var box=$("stages"); box.innerHTML="";
+  (DATA.stages||[]).forEach(function(s,i){
+    var p=n(s.pct), state=p>=100?"done":(p>0?"go":"off");
+    var icon = state==="done" ? '<span class="tick" aria-hidden="true">✓</span>'
+             : state==="go"   ? '<span class="spin" aria-hidden="true"></span>' : '';
+    var e=el("div","stage");
+    e.innerHTML='<span class="n">'+String(i+1).padStart(2,"0")+'</span>'+
+      '<span class="nm">'+esc(s.label)+icon+'</span>'+
+      '<span class="ct"><b>'+n(s.done)+'</b> / '+n(s.total)+' · '+pct1(p)+'%</span>'+
+      '<div class="bar"><div class="meter'+(state==="done"?" done":"")+(state==="off"?" neutral":"")+'" role="img" aria-label="'+
+        esc(s.label)+' '+pct1(p)+'%"><i style="width:'+Math.max(0,Math.min(100,p))+'%"></i></div></div>'+
+      (STAGE_HINT[s.key]?'<div class="hint">'+esc(STAGE_HINT[s.key])+'</div>':'');
+    box.appendChild(e);
+  });
+}
+
+function renderFilters(){
+  var sel=$("camF"), cur=sel.value;
+  var cams={}; (DATA.episodes||[]).forEach(function(e){ if(e.camera)cams[e.camera]=(cams[e.camera]||0)+1; });
+  var keys=Object.keys(cams).sort();
+  sel.innerHTML='<option value="">全部机位</option>'+keys.map(function(k){
+    return '<option value="'+esc(k)+'">'+esc(camShort(k))+' · '+esc(k)+'（'+cams[k]+'）</option>'; }).join("");
+  sel.value = keys.indexOf(cur)>=0 ? cur : (cur===""?"":"");
+  ui.cam = sel.value;
+}
+
+function covOf(e){
+  if(e.first==null||e.last==null||e.scored==null) return 0;
+  var sp=(n(e.last)-n(e.first)+1);
+  return sp>0 ? Math.min(100,100*n(e.scored)/sp) : 0;
+}
+function view(){
+  var eps=(DATA.episodes||[]).slice();
+  if(ui.cam) eps=eps.filter(function(e){ return e.camera===ui.cam; });
+  var k=ui.sort, dir=ui.asc?1:-1;
+  eps.sort(function(a,b){
+    var va,vb;
+    if(k==="object"||k==="camera"){ va=String(a[k]||""); vb=String(b[k]||"");
+      if(va!==vb) return va<vb?-dir:dir; return (a.ep-b.ep); }
+    if(k==="done"){ va=(a.done||[]).length; vb=(b.done||[]).length; }
+    else if(k==="cov"){ va=covOf(a); vb=covOf(b); }
+    else { va=n(a[k]); vb=n(b[k]); }
+    if(va!==vb) return (va-vb)*dir;
+    return a.ep-b.ep;
+  });
+  if(ui.group){
+    var order=[], seen={};
+    eps.forEach(function(e){ if(!seen[e.object]){seen[e.object]=[];order.push(e.object);} seen[e.object].push(e); });
+    var out=[]; order.forEach(function(o){ out.push({_grp:o,rows:seen[o]}); });
+    return {grouped:out,flat:eps};
+  }
+  return {grouped:null,flat:eps};
+}
+
+function stepsHtml(e){
+  var done=e.done||[], m={}; done.forEach(function(k){m[k]=1;});
+  var cells=EPSTAGES.map(function(s){
+    return '<b class="'+(m[s[0]]?"on":"")+'" title="'+esc(s[2])+'：'+(m[s[0]]?"已完成":"未完成")+'">'+s[1]+'</b>';
+  }).join("");
+  var c=done.length, all=EPSTAGES.length;
+  return '<span class="steps" role="img" aria-label="'+c+' / '+all+' 个阶段完成">'+cells+'</span>'+
+         '<span class="sc'+(c===all?" all":"")+'">'+c+'/'+all+'</span>';
+}
+function thumbHtml(e,has){
+  var f="ep"+String(e.ep).padStart(6,"0")+".jpg";
+  if(!has[f]) return '<span class="thumb ph">无图</span>';
+  return '<img class="thumb" loading="lazy" src="assets/'+f+'" alt="Episode '+e.ep+' 接触区间中点帧" '+
+         'data-ep="'+e.ep+'" width="62" height="47">';
+}
+
+function renderEpisodes(){
+  var v=view(), body=$("epBody"), has={};
+  (DATA.artifacts||[]).forEach(function(f){ has[f]=1; });
+  var html="";
+  function row(e){
+    var o=OBJ[e.object]||{cn:"",tag:"",why:""};
+    var cov=covOf(e), st=n(e.stretches);
+    return '<tr>'+
+      '<td>'+thumbHtml(e,has)+'</td>'+
+      '<td><span class="epid">#'+String(e.ep).padStart(2,"0")+'</span><span class="obj-cn" title="'+esc(e.sequence||"")+'">'+
+        esc(String(e.sequence||"").slice(0,10))+'</span></td>'+
+      '<td>'+esc(e.object||"—")+'<span class="obj-cn">'+esc(o.cn||"")+'</span></td>'+
+      '<td title="'+esc(e.camera||"")+'">'+esc(camShort(e.camera))+'</td>'+
+      '<td class="num">'+fmt(e.frames)+'</td>'+
+      '<td class="num">'+fmt(e.scored)+'</td>'+
+      '<td class="num"><span class="cov" title="评分帧 / 首末评分帧跨度">'+(cov?pct1(cov):"—")+'%</span></td>'+
+      '<td class="num">'+(st>1?'<span class="chip multi">'+st+' 段</span>':'<span class="chip">'+(st||"—")+' 段</span>')+'</td>'+
+      '<td>'+stepsHtml(e)+'</td></tr>';
+  }
+  if(v.grouped){
+    v.grouped.forEach(function(g){
+      var o=OBJ[g._grp]||{cn:"",tag:"",why:""};
+      html+='<tr class="grp"><td colspan="9"><span class="obj">'+esc(g._grp)+
+        ' <span style="font-weight:400;color:var(--ink-3)">'+esc(o.cn)+' · '+g.rows.length+' 段共享一张网格</span>'+
+        (o.tag?' <span class="chip tag" title="'+esc(o.why)+'">'+esc(o.tag)+'</span>':'')+'</span></td></tr>';
+      g.rows.forEach(function(e){ html+=row(e); });
+    });
+  } else {
+    v.flat.forEach(function(e){ html+=row(e); });
+  }
+  body.innerHTML = html || '<tr><td colspan="9" class="empty">没有符合筛选条件的 episode。</td></tr>';
+  $("epCount").textContent=v.flat.length+" / "+((DATA.episodes||[]).length)+" 段";
+}
+
+/* ── 接触区间图 ─────────────────────────────────────────────────────────── */
+function renderChart(){
+  var v=view(), box=$("chart");
+  var eps=v.flat;
+  if(!eps.length){ box.innerHTML='<div class="empty">没有符合筛选条件的 episode。</div>'; return; }
+  var max=0; eps.forEach(function(e){ max=Math.max(max,n(e.frames)); });
+  max=Math.ceil(max/100)*100 || 100;
+  var step = max>600?200:(max>300?100:50);
+  var ticks=[]; for(var t=0;t<=max;t+=step) ticks.push(t);
+  var gw=(100*step/max);
+
+  var html='<div class="axis"><span class="lb">帧轴</span><div class="ticks">'+
+    ticks.map(function(t){ return '<span style="left:'+(100*t/max)+'%">'+t+'</span>'; }).join("")+
+    '</div><span class="mt" style="text-align:right">评分帧 · 段 · 覆盖</span></div>';
+
+  function srow(e){
+    var fr=n(e.frames), fi=n(e.first), la=n(e.last);
+    var o=OBJ[e.object]||{cn:""};
+    var w=100*fr/max, L=100*fi/max, W=100*Math.max(1,(la-fi+1))/max;
+    var cov=covOf(e), st=n(e.stretches);
+    var tip="Episode "+e.ep+" · "+(e.object||"")+" · 共 "+fmt(fr)+" 帧\n评分区间 "+fmt(fi)+" – "+fmt(la)+
+            "（跨度 "+fmt(la-fi+1)+" 帧）\n评分帧 "+fmt(e.scored)+" · "+st+" 段 · 区间内覆盖 "+pct1(cov)+"%";
+    var g90 = fr>90 ? '<span class="g90" style="left:'+(100*90/max)+'%"></span>' : '';
+    return '<div class="srow" title="'+esc(tip)+'">'+
+      '<span class="lb"><i>#'+String(e.ep).padStart(2,"0")+'</i>'+esc(o.cn||e.object||"")+'</span>'+
+      '<div class="plot" style="--gw:'+gw+'%">'+g90+
+        '<span class="trk" style="width:'+w+'%"></span>'+
+        '<span class="span" style="left:'+L+'%;width:'+W+'%"></span>'+
+      '</div>'+
+      '<span class="mt">'+fmt(e.scored)+' · '+st+'段 · '+Math.round(cov)+'%</span></div>';
+  }
+
+  if(v.grouped){
+    v.grouped.forEach(function(g){
+      var o=OBJ[g._grp]||{cn:"",tag:""};
+      html+='<div class="gbar">'+esc(g._grp)+' <span class="om">'+esc(o.cn)+(o.tag?' · '+esc(o.tag):'')+'</span></div>';
+      g.rows.forEach(function(e){ html+=srow(e); });
+    });
+  } else {
+    eps.forEach(function(e){ html+=srow(e); });
+  }
+
+  html+='<div class="ckey">'+
+    '<span><i style="background:var(--accent)"></i>接触跨度（首个→最后一个评分帧）</span>'+
+    '<span><i style="background:var(--panel-3)"></i>未评分帧（仍需跑，用于初始化与时序传播）</span>'+
+    '<span><i class="g"></i>frame 90 ≈ 3.0 秒，多数段的首个评分帧</span>'+
+    '<span>多段 episode 的跨度内含不计分的 gap，覆盖率即跨度内真正被评分的比例；逐段边界未在数据中给出。</span>'+
+    '</div>';
+  box.innerHTML=html;
+}
+
+/* ── 硬件 ───────────────────────────────────────────────────────────────── */
+function tempCls(t){ return t>=85?"crit":(t>=75?"serious":(t>=65?"warn":"ok")); }
+function sevStyle(c){
+  if(c==="crit") return "background:var(--crit-bg);color:var(--crit-ink)";
+  if(c==="serious") return "background:var(--serious-bg);color:var(--serious-ink)";
+  if(c==="warn") return "background:var(--warn-bg);color:var(--warn-ink)";
+  return "background:var(--panel-3);color:var(--ink-2)";
+}
+function renderGpus(){
+  var box=$("gpus"), gs=DATA.gpus||[];
+  if(!gs.length){ box.innerHTML='<div class="pbox"><div class="empty"><b>读不到 GPU</b>nvidia-smi 无输出或超时。</div></div>'; return; }
+  box.innerHTML=gs.map(function(g){
+    var mu=n(g.mem_used), mt=n(g.mem_total)||1, mp=100*mu/mt, up=n(g.util);
+    var mcls = mp>=92?"crit":(mp>=80?"serious":"");
+    var tc=tempCls(n(g.temp));
+    var busy = up>5 || mp>2;
+    return '<div class="gcard">'+
+      '<div class="gh"><span class="gi">GPU '+n(g.index)+'</span>'+
+        '<span class="temp" style="'+sevStyle(tc)+'" title="核心温度">'+n(g.temp)+'°C</span></div>'+
+      '<div class="gn">'+esc(g.name||"")+'</div>'+
+      '<div class="gline"><div class="gl"><span>利用率</span><b>'+up+'%</b></div>'+
+        '<div class="meter'+(up?"":" neutral")+'" role="img" aria-label="GPU '+n(g.index)+' 利用率 '+up+'%"><i style="width:'+up+'%"></i></div></div>'+
+      '<div class="gline"><div class="gl"><span>显存</span><b>'+(mu/1024).toFixed(1)+' / '+(mt/1024).toFixed(0)+' GiB</b></div>'+
+        '<div class="meter'+(mcls?" "+mcls:"")+(mu?"":" neutral")+'" role="img" aria-label="显存占用 '+pct1(mp)+'%"><i style="width:'+Math.max(mu?0.6:0,mp)+'%"></i></div></div>'+
+      '<div class="idle" style="margin-top:9px">'+(busy?'运行中':'空闲 · 可调度')+'</div>'+
+    '</div>';
+  }).join("");
+}
+function renderProcs(){
+  var ps=DATA.gpu_procs||[], box=$("procs"), sub=$("procSub");
+  var ext=ps.filter(function(p){ return p.user!=="tianyuan"; });
+  var extMem=ext.reduce(function(a,p){ return a+n(p.mem); },0);
+  if(!ps.length){
+    sub.textContent="";
+    box.innerHTML='<div class="empty"><b>当前没有进程占用 GPU</b>四张卡全部可调度。本机与他人共用，长任务请按 episode 切分、可中断、可续跑。</div>';
+    return;
+  }
+  sub.innerHTML = ext.length
+    ? '共 '+ps.length+' 个 · <span style="color:var(--serious-ink);font-weight:600">外部 '+ext.length+' 个，占 '+(extMem/1024).toFixed(1)+' GiB</span>'
+    : '共 '+ps.length+' 个 · 全部属于本项目';
+  box.innerHTML='<div style="overflow-x:auto"><table><thead><tr>'+
+    '<th>PID</th><th>进程</th><th class="num">显存</th><th>用户</th><th>归属</th></tr></thead><tbody>'+
+    ps.slice().sort(function(a,b){ return n(b.mem)-n(a.mem); }).map(function(p){
+      var mine=p.user==="tianyuan";
+      return '<tr><td class="num" style="text-align:left">'+n(p.pid)+'</td>'+
+        '<td style="overflow-wrap:anywhere">'+esc(p.name||"")+'</td>'+
+        '<td class="num">'+(n(p.mem)/1024).toFixed(1)+' GiB</td>'+
+        '<td class="mono">'+esc(p.user||"?")+'</td>'+
+        '<td>'+(mine?'<span class="chip mine">本项目</span>':'<span class="chip ext" title="他人任务，会抢占显存与算力">⚑ 外部</span>')+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+}
+function renderDisk(){
+  var d=DATA.disk||{}, up=n(d.used_pct), free=n(d.free_gb), tot=n(d.total_gb);
+  var cls = up>=95||free<120 ? "crit" : (up>=85||free<250 ? "serious" : (up>=75?"warn":""));
+  var box=$("disk");
+  box.innerHTML='<div class="dv"><b style="color:'+(cls==="crit"?"var(--crit-ink)":cls==="serious"?"var(--serious-ink)":"var(--ink)")+'">'+
+      fmt(free)+'</b><span>GB 可用 / 共 '+fmt(tot)+' GB</span></div>'+
+    '<div class="meter lg'+(cls?" "+cls:"")+'" role="img" aria-label="磁盘已用 '+pct1(up)+'%"><i style="width:'+Math.min(100,up)+'%"></i></div>'+
+    '<div class="scale"><span>0%</span><span>已用 '+pct1(up)+'%</span><span>100%</span></div>'+
+    (cls?'<div class="alarm'+(cls==="crit"?" crit":"")+'"><span class="ic">'+(cls==="crit"?"✕":"⚠")+'</span>'+
+      '<span>'+(cls==="crit"?"空间告急。":"空间吃紧。")+'16,563 帧 1536×1152 PNG 约 80 GB —— 帧缓存必须压缩、按需解码，不能无脑全量展开。</span></div>'
+    :'<div class="idle" style="margin-top:10px">空间充裕。</div>');
+}
+
+/* ── 日志 ───────────────────────────────────────────────────────────────── */
+function mdInline(s){
+  return esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+}
+function renderLog(){
+  var lines=DATA.log_tail||[], out="", items=[], mode=null;
+  function flush(){
+    if(!items.length) return;
+    out+=items.map(function(it){
+      return '<div class="li"><span class="tm">'+(it.tm||"")+'</span><span class="tx">'+it.tx+'</span></div>';
+    }).join("");
+    items=[];
+  }
+  for(var i=0;i<lines.length;i++){
+    var ln=lines[i], tr=ln.replace(/\s+$/,"");
+    if(!tr.trim()){ continue; }
+    var mH=tr.match(/^(#{1,6})\s+(.*)$/);
+    if(mH){ flush(); out+= mH[1].length<=1 ? '<h3>'+mdInline(mH[2])+'</h3>' : '<h4>'+mdInline(mH[2])+'</h4>'; mode="h"; continue; }
+    var mL=tr.match(/^[-*]\s+(.*)$/);
+    if(mL){
+      var rest=mL[1], tm="", mT=rest.match(/^`(\d{1,2}:\d{2}(?::\d{2})?)`\s*(.*)$/);
+      if(mT){ tm=mT[1]; rest=mT[2]; }
+      items.push({tm:tm,tx:mdInline(rest)}); mode="li"; continue;
+    }
+    if(mode==="li" && items.length && /^\s/.test(ln)){ items[items.length-1].tx+=" "+mdInline(tr.trim()); continue; }
+    flush();
+    out+='<p class="'+(mode===null?"intro":"para")+'">'+mdInline(tr.trim())+'</p>';
+    mode="p";
+  }
+  flush();
+  $("log").innerHTML = out || '<div class="empty">notes/progress.md 还没有内容。</div>';
+}
+
+/* ── 交互 ───────────────────────────────────────────────────────────────── */
+function wire(){
+  $("sortBy").onchange=function(){ ui.sort=this.value; renderEpisodes(); renderChart(); };
+  $("camF").onchange=function(){ ui.cam=this.value; renderEpisodes(); renderChart(); };
+  $("grpChk").onchange=function(){ ui.group=this.checked; renderEpisodes(); renderChart(); };
+  function dir(a){ ui.asc=a; $("ascBtn").setAttribute("aria-pressed",a?"true":"false");
+    $("descBtn").setAttribute("aria-pressed",a?"false":"true"); renderEpisodes(); renderChart(); }
+  $("ascBtn").onclick=function(){ dir(true); };
+  $("descBtn").onclick=function(){ dir(false); };
+
+  document.addEventListener("click",function(ev){
+    var img=ev.target.closest ? ev.target.closest("img.thumb") : null;
+    if(img) openOv(parseInt(img.getAttribute("data-ep"),10));
+  });
+  $("ov").addEventListener("click",function(ev){ if(ev.target===this) closeOv(); });
+  document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") closeOv(); });
+}
+function openOv(ep){
+  var e=((DATA&&DATA.episodes)||[]).filter(function(x){return x.ep===ep;})[0];
+  if(!e) return;
+  var o=OBJ[e.object]||{cn:""};
+  var mid=Math.round((n(e.first)+n(e.last))/2);
+  $("ovImg").src="assets/ep"+String(ep).padStart(6,"0")+".jpg";
+  $("ovImg").alt="Episode "+ep+" 第 "+mid+" 帧";
+  $("ovCap").innerHTML='<b>#'+String(ep).padStart(2,"0")+'</b> '+esc(e.object||"")+' '+esc(o.cn)+
+    ' · <span class="mono">'+esc(e.camera||"")+'</span> · 约第 <b>'+mid+'</b> 帧（接触区间中点）'+
+    ' · 评分 <b>'+fmt(e.scored)+'</b>/'+fmt(e.frames)+' 帧'+
+    '<span class="mono" style="color:var(--ink-3);flex-basis:100%">'+esc(e.sequence||"")+'</span>';
+  $("ov").hidden=false;
+}
+function closeOv(){ $("ov").hidden=true; $("ovImg").removeAttribute("src"); }
+
+boot();
+})();
+</script>

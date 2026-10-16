@@ -1,0 +1,13 @@
+data/
+work/frames/
+work/masks/
+work/models/
+work/kit/
+work/baseline_episodes/
+work/*.parquet
+logs/
+state/
+web/assets/
+web/status.json
+__pycache__/
+*.pyc
