@@ -1,0 +1,52 @@
+{
+  "track": "track_1",
+  "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+  "message": "Baseline: MHR rest pose + unit box (format floor)",
+  "submissions": {
+    "cd_h_cm": {
+      "slug": "v2d-challenge-track1-cd-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-H (cm)",
+      "ref": 57260641,
+      "public_score": "70.64959",
+      "error": ""
+    },
+    "cd_o_cm": {
+      "slug": "v2d-challenge-track1-cd-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-O (cm)",
+      "ref": 57260643,
+      "public_score": "145.40682",
+      "error": ""
+    },
+    "acc_h_cm": {
+      "slug": "v2d-challenge-track1-acc-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-H (cm)",
+      "ref": 57260644,
+      "public_score": "0.14528",
+      "error": ""
+    },
+    "acc_o_cm": {
+      "slug": "v2d-challenge-track1-acc-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-O (cm)",
+      "ref": 57260645,
+      "public_score": "0.07429",
+      "error": ""
+    },
+    "interpenetration_cm": {
+      "slug": "v2d-challenge-track1-pen",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/baseline_track1.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - PEN (cm)",
+      "ref": 57260646,
+      "public_score": "0.00000",
+      "error": ""
+    }
+  }
+}
