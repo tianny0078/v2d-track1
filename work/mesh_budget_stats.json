@@ -1,0 +1,62 @@
+{
+ "big_red_bowl": {
+  "v": 2061,
+  "f": 4096,
+  "watertight": false,
+  "euler": 26
+ },
+ "black_pan": {
+  "v": 2050,
+  "f": 4096,
+  "watertight": true,
+  "euler": 2
+ },
+ "foam_grass_block": {
+  "v": 2052,
+  "f": 4096,
+  "watertight": true,
+  "euler": 4
+ },
+ "hula_hoop": {
+  "v": 2054,
+  "f": 4096,
+  "watertight": true,
+  "euler": 6
+ },
+ "iron": {
+  "v": 2053,
+  "f": 4096,
+  "watertight": false,
+  "euler": 7
+ },
+ "paint_roller": {
+  "v": 2049,
+  "f": 4096,
+  "watertight": false,
+  "euler": 2
+ },
+ "pink_foam_roll": {
+  "v": 2084,
+  "f": 4096,
+  "watertight": false,
+  "euler": 39
+ },
+ "short_wood_stool": {
+  "v": 2058,
+  "f": 4096,
+  "watertight": false,
+  "euler": 13
+ },
+ "white_desk": {
+  "v": 2058,
+  "f": 4096,
+  "watertight": false,
+  "euler": 14
+ },
+ "white_laptop_cart": {
+  "v": 2056,
+  "f": 4096,
+  "watertight": false,
+  "euler": 155
+ }
+}

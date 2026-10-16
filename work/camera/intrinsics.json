@@ -1,0 +1,76 @@
+{
+ "back_stereo_camera_left": {
+  "episodes": [
+   0,
+   1,
+   2,
+   18,
+   28
+  ],
+  "n_samples": 10,
+  "fx": 829.62,
+  "fy": 829.62,
+  "cx": 768.0,
+  "cy": 576.0,
+  "fov_x_deg": 85.58,
+  "fx_iqr": 21.57
+ },
+ "front_stereo_camera_left": {
+  "episodes": [
+   4,
+   5,
+   9,
+   12,
+   14,
+   16,
+   22,
+   23,
+   24
+  ],
+  "n_samples": 9,
+  "fx": 821.53,
+  "fy": 821.53,
+  "cx": 768.0,
+  "cy": 576.0,
+  "fov_x_deg": 86.14,
+  "fx_iqr": 6.93
+ },
+ "left_stereo_camera_left": {
+  "episodes": [
+   3,
+   6,
+   7,
+   10,
+   11,
+   13,
+   17,
+   19,
+   20,
+   21,
+   29
+  ],
+  "n_samples": 11,
+  "fx": 804.73,
+  "fy": 804.73,
+  "cx": 768.0,
+  "cy": 576.0,
+  "fov_x_deg": 87.32,
+  "fx_iqr": 15.49
+ },
+ "right_stereo_camera_left": {
+  "episodes": [
+   8,
+   15,
+   25,
+   26,
+   27
+  ],
+  "n_samples": 10,
+  "fx": 798.13,
+  "fy": 798.13,
+  "cx": 768.0,
+  "cy": 576.0,
+  "fov_x_deg": 87.8,
+  "fx_iqr": 7.93
+ }
+}
