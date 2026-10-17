@@ -1,15 +1,19 @@
 {
- "fetched_at": "2026-10-17T06:33:41+00:00",
+ "fetched_at": "2026-10-17T16:34:05+00:00",
  "metrics": {
   "CD-H": {
-   "teams": 27,
-   "rank": 22,
+   "teams": 28,
+   "rank": 23,
    "score": 17.86488,
-   "best": 13.43306,
-   "third": 14.20399,
-   "median": 15.44549,
+   "best": 13.36778,
+   "third": 14.01671,
+   "median": 15.48515,
    "worst": 73.64771,
    "top": [
+    {
+     "team": "Lodestar",
+     "score": 13.36778
+    },
     {
      "team": "EviisKitson",
      "score": 13.43306
@@ -23,27 +27,23 @@
      "score": 14.20399
     },
     {
-     "team": "Lodestar",
-     "score": 14.28963
-    },
-    {
      "team": "um",
      "score": 14.85738
     }
    ]
   },
   "CD-O": {
-   "teams": 27,
-   "rank": 24,
+   "teams": 28,
+   "rank": 26,
    "score": 145.40682,
-   "best": 17.91571,
-   "third": 19.1004,
-   "median": 31.40578,
-   "worst": 422.2238,
+   "best": 17.50957,
+   "third": 18.81373,
+   "median": 32.18318,
+   "worst": 173.355,
    "top": [
     {
      "team": "EviisKitson",
-     "score": 17.91571
+     "score": 17.50957
     },
     {
      "team": "xpz666",
@@ -51,7 +51,7 @@
     },
     {
      "team": "RobotPI Lab",
-     "score": 19.1004
+     "score": 18.81373
     },
     {
      "team": "Lodestar",
@@ -64,17 +64,17 @@
    ]
   },
   "ACC-H": {
-   "teams": 27,
+   "teams": 28,
    "rank": 7,
    "score": 0.14528,
-   "best": 0.13738,
+   "best": 0.13724,
    "third": 0.13826,
-   "median": 0.17446,
+   "median": 0.17835,
    "worst": 2.49281,
    "top": [
     {
      "team": "EviisKitson",
-     "score": 0.13738
+     "score": 0.13724
     },
     {
      "team": "RobotPI Lab",
@@ -95,17 +95,21 @@
    ]
   },
   "ACC-O": {
-   "teams": 27,
-   "rank": 5,
+   "teams": 28,
+   "rank": 6,
    "score": 0.07429,
-   "best": 0.07111,
-   "third": 0.07288,
+   "best": 0.07075,
+   "third": 0.07136,
    "median": 0.18698,
-   "worst": 4.1295,
+   "worst": 2.09073,
    "top": [
     {
+     "team": "Lodestar",
+     "score": 0.07075
+    },
+    {
      "team": "RobotPI Lab",
-     "score": 0.07111
+     "score": 0.07109
     },
     {
      "team": "Lattice Studios",
@@ -118,20 +122,16 @@
     {
      "team": "Marcell",
      "score": 0.07429
-    },
-    {
-     "team": "Tony",
-     "score": 0.07429
     }
    ]
   },
   "PEN": {
-   "teams": 27,
+   "teams": 28,
    "rank": 2,
    "score": 0.0,
    "best": 0.0,
    "third": 0.0,
-   "median": 0.00204,
+   "median": 0.00213,
    "worst": 0.1007,
    "top": [
     {
@@ -157,5 +157,5 @@
    ]
   }
  },
- "rank_sum": 60
+ "rank_sum": 64
 }

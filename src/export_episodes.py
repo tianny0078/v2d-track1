@@ -113,7 +113,14 @@ def _object_metric_size(ep, K, mesh) -> float:
     return S
 
 
-def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
+OBJ_DEPTH = "mask"
+OBJ_DEPTH_COL = 0
+THIN_FILL = 0.2
+CONTACT_ANCHOR = False
+PUSH_MODE = "centroid"
+
+
+def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=None):
     """Object translation at the hands, scale from the mask, identity rotation. See --object help."""
     from scipy.ndimage import gaussian_filter1d
     from src.mhr_local import MHR, L_WRIST, R_WRIST
@@ -126,15 +133,16 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
     sc = json.load((ROOT / "work/scored_frames_summary.json").open())[str(ep)]
     fr = np.concatenate([np.arange(a_, b_ + 1) for a_, b_ in sc["spans"]])
     pr = np.concatenate([pose[fr], np.broadcast_to(scales, (len(fr), 68))], 1)
-    _, j = mhr.forward(pr, shape)
+    v_all, j = mhr.forward(pr, shape)
     hands = j[:, [L_WRIST, R_WRIST]]                                     # [N,2,3] m
     m = np.load(ROOT / f"work/masks/ep{ep:06d}.npz"); W = int(m["shape"][1]); packed = m["packed"]
     mi = np.searchsorted(m["frame_ids"], fr)
-    uv = np.full((len(fr), 2), np.nan); ext = np.full(len(fr), np.nan)
+    uv = np.full((len(fr), 2), np.nan); ext = np.full(len(fr), np.nan); fill = np.full(len(fr), np.nan)
     for t, i in enumerate(mi):
         om = np.unpackbits(packed[i], axis=-1)[0, :, :W]; ys, xs = np.where(om)
         if len(xs) > 30:
             uv[t] = [xs.mean(), ys.mean()]; ext[t] = max(xs.max() - xs.min(), ys.max() - ys.min())
+            fill[t] = len(xs) / float((xs.max() - xs.min() + 1) * (ys.max() - ys.min() + 1))
     hu = K["fx"] * hands[..., 0] / hands[..., 2] + K["cx"]; hv = K["fy"] * hands[..., 1] / hands[..., 2] + K["cy"]
     d = np.linalg.norm(np.stack([hu, hv], -1) - uv[:, None, :], axis=-1)
     near = np.where(np.isnan(d), np.inf, d).argmin(1)
@@ -148,6 +156,56 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
     # z = f * S / ext_px per frame; the hand depth is only a fallback when the mask is missing.
     S = _object_metric_size(ep, K, mesh)
     z_mask = np.where(ok & (ext > 0), K["fx"] * S / np.maximum(ext, 1), np.nan)
+    # MoGe DEPTH RATIO (--obj-depth moge). Mask-size depth needs a clean silhouette and the
+    # object's metric size; it put the object 1-2 m from the hand on the worst episodes (ep1 212
+    # cm, ep8 157 cm, measured on place7). MoGe's dense depth has an unknown global scale, but the
+    # ratio object/person inside ONE frame is scale-free, and the person's depth is SAM3D's. The
+    # person reference is the depth of the body vertices that project inside the person mask
+    # (35th percentile ~ the visible front surface, which is what MoGe measures).
+    if OBJ_DEPTH == "moge" and (ROOT / f"work/objdepth/ep{ep:06d}.npz").exists():
+        od = np.load(ROOT / f"work/objdepth/ep{ep:06d}.npz"); opos = {f: i for i, f in enumerate(od["frame_ids"])}
+        z_moge = np.full(len(fr), np.nan)
+        for t, f in enumerate(fr):
+            if f not in opos:
+                continue
+            # column 0 = median, 1 = p20 (nearest surface: thin objects such as the hoop let the
+            # floor behind them into the mask, which drags the median back), 2 = p80
+            do, dp = od["d_obj"][opos[f], OBJ_DEPTH_COL], od["d_person"][opos[f], 0]
+            if not (np.isfinite(do) and np.isfinite(dp)) or od["n_obj"][opos[f]] < 50:
+                continue
+            vz = v_all[t, :, 2]; vu = K["fx"] * v_all[t, :, 0] / vz + K["cx"]; vv = K["fy"] * v_all[t, :, 1] / vz + K["cy"]
+            pm = np.unpackbits(packed[mi[t]], axis=-1)[1, :, :W]
+            iu = np.clip(vu.astype(int), 0, W - 1); iv = np.clip(vv.astype(int), 0, pm.shape[0] - 1)
+            inside = pm[iv, iu] > 0
+            z_person = np.percentile(vz[inside], 35) if inside.sum() > 100 else np.percentile(vz, 35)
+            z_moge[t] = z_person * do / dp
+        # THIN objects (hula hoop: mask fill ratio 0.12 vs 0.8 for solid ones) let the background
+        # through the mask, and MoGe then reports the wall behind the ring (ep1: ratio 1.5 while
+        # the hoop is held up, object 1.5 m behind the hand). The scored span is the contact span,
+        # so for a thin object the nearest hand's depth is the better estimate.
+        thin = np.isfinite(fill) & (fill < THIN_FILL)
+        if thin.sum() > 0.5 * np.isfinite(fill).sum():
+            z_moge[:] = zh_hand
+            print(f"  ep{ep} thin object (median fill {np.nanmedian(fill):.2f} < {THIN_FILL}): depth anchored to the nearest hand")
+        if CONTACT_ANCHOR:
+            # CONTACT ANCHORING. CD-O is measured after the Sim(3) fitted on the HUMAN, so what
+            # matters is the object's depth RELATIVE to the body, not its absolute depth. At frames
+            # where a wrist lies inside the object's mask the object is at the hand; MoGe's ratio
+            # has a per-episode bias against the SAM3D hand (median |bias| 33 cm, within-episode
+            # spread 24 cm; the mask-size depth: 33 / 46), so shift the whole MoGe series by the
+            # median hand-minus-MoGe offset over the contact frames and keep its relative motion.
+            dn = d[np.arange(len(fr)), near]
+            contact = np.isfinite(z_moge) & np.isfinite(dn) & (dn < 0.6 * np.nan_to_num(ext, nan=0.0))
+            if contact.sum() >= 10:
+                delta = float(np.median(zh_hand[contact] - z_moge[contact]))
+                z_moge = z_moge + delta
+                print(f"  ep{ep} contact anchor: {int(contact.sum())} frames, shift {delta*100:+.0f} cm")
+            else:
+                print(f"  ep{ep} contact anchor: only {int(contact.sum())} contact frames, no shift")
+        n_m = int(np.isfinite(z_moge).sum())
+        print(f"  ep{ep} moge depth: {n_m}/{len(fr)} frames; median |z_moge - z_mask| "
+              f"{np.nanmedian(np.abs(z_moge - z_mask)):.2f} m, median z_moge {np.nanmedian(z_moge):.2f} m")
+        z_mask = np.where(np.isfinite(z_moge), z_moge, z_mask)
     # the mask's apparent size jitters frame to frame (thin objects edge-on, hands covering it),
     # and 1/ext turns that into depth jitter: ACC-O proxy hit 5.95 on the hoop. Smooth it first,
     # then keep it within reach of the hand that is touching it -- the scored span is the contact
@@ -163,6 +221,12 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
         zf[sl] = _g(seg, 6.0, mode="nearest") if len(seg) >= 3 else seg
     zh = np.where(np.isnan(zf), zh_hand, np.clip(zf, zh_hand - 1.5, zh_hand + 1.5))
     zh = np.clip(zh, 0.5, 12.0)
+    # the clamp is applied AFTER the smoothing and re-introduces kinks where it engages (place7
+    # ep18: z-dominated spikes on three consecutive frames with a stable mask). Smooth once more
+    # after clamping so the trajectory the scorer differences is C1 everywhere.
+    for sl in stretches(fr):
+        if sl.stop - sl.start >= 3:
+            zh[sl] = _g(zh[sl], 6.0, mode="nearest")
     # frames with no object mask: hold the last good centroid (object is then likely occluded by the body)
     for t in range(len(fr)):
         if not ok[t]:
@@ -179,7 +243,10 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
     mesh_ext = float(np.max(mesh.extents))
     obj_s = np.float32(S / max(mesh_ext, 1e-6))
     # centre the mesh so its translation is its centroid, which is what the mask centroid estimates
-    t3 = t3 - (obj_s * np.asarray(mesh.vertices).mean(0)).astype(np.float32)
+    cen = (obj_s * np.asarray(mesh.vertices).mean(0)).astype(np.float32)
+    # per-frame rotation (object_track.py): world centroid = R (s * mean(v)) + t  ->  t = t3 - R cen
+    Rf = np.tile(np.eye(3, dtype=np.float32), (len(fr), 1, 1)) if R_seq is None else R_seq[fr].astype(np.float32)
+    t3 = t3 - np.einsum("tij,j->ti", Rf, cen)
     # the object is rigid and the reference's own translation acceleration is only 0.074
     # cm/frame^2, so smooth it harder than the body (sigma 6 vs 3)
     obj_sigma = max(sigma, 6.0)
@@ -208,6 +275,61 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
     mv = np.asarray(mv, np.float64); mf = np.asarray(mf, np.int64)
     mf = mf[(mf[:, 0] != mf[:, 1]) | (mf[:, 1] != mf[:, 2])]        # drop zero-area padding faces
     hand_c = hands[np.arange(len(fr)), near]                                 # nearest hand, [N,3]
+    if PUSH_MODE == "closest":
+        # MINIMAL ESCAPE. The hand->centroid push pushed hollow/large objects by half their size
+        # (stool ep25: 90 cm, cart 55 cm, desk 46 cm; image centroid 70-90 px off the mask) because
+        # the hand gripping a seat edge sits at the object's centre. The way out of a thin slab is
+        # a few cm along the surface normal: push along the mean (penetrating point -> closest
+        # surface point) direction by the max depth, iterate until clear.
+        pq = _tm.proximity.ProximityQuery(_tm.Trimesh(mv, mf, process=False))
+
+        def _escape(t, t3t):
+            """world-space push vector (m) that clears the hand at frame t from translation t3t."""
+            total = np.zeros(3)
+            for _ in range(8):
+                local = ((hand_pts[t] - (t3t + total)) @ Rf[t]) / float(obj_s)
+                depth = penetration_depth(local, mv, mf)
+                if depth.max() <= 0.0:
+                    return total, True
+                idx = np.flatnonzero(depth > 0)
+                cp, _, _ = pq.on_surface(local[idx])
+                vec = ((cp - local[idx]) @ Rf[t].T) * float(obj_s)             # local -> world
+                w = depth[idx][:, None]; dvec = (vec * w).sum(0) / max(w.sum(), 1e-9)
+                n = np.linalg.norm(dvec)
+                dvec = dvec / n if n > 1e-9 else np.array([0, 0, 1.0])
+                total = total + dvec * (depth.max() * float(obj_s) + 0.01)
+            return total, False
+
+        pv = np.zeros((len(fr), 3), np.float32)
+        for t in range(len(fr)):
+            pv[t], _ = _escape(t, t3[t])
+        mag = np.linalg.norm(pv, axis=1)
+        # envelope on the magnitude (dilate + smooth + margin), smoothed direction
+        from scipy.ndimage import maximum_filter1d
+        dirs = np.zeros_like(pv); push_s = np.zeros(len(fr), np.float32)
+        for sl in stretches(fr):
+            if sl.stop - sl.start >= 3:
+                push_s[sl] = gaussian_filter1d(maximum_filter1d(mag[sl], size=25, mode="nearest"), 6.0, mode="nearest") + 0.01
+                dsm = gaussian_filter1d(pv[sl], 6.0, axis=0, mode="nearest")
+                nrm = np.linalg.norm(dsm, axis=1, keepdims=True)
+                dirs[sl] = np.where(nrm > 1e-6, dsm / np.maximum(nrm, 1e-6), 0.0)
+            else:
+                push_s[sl] = mag[sl]; dirs[sl] = pv[sl] / np.maximum(mag[sl][:, None], 1e-9)
+        push_s = np.where(mag > 0, push_s, np.where(push_s > 0.03, push_s, 0.0))   # frames never inside: no push unless a neighbour needs it
+        t3 = t3 + push_s[:, None] * dirs
+        # per-frame residual, minimal escape again (small by construction)
+        resid = np.zeros(len(fr), np.float32)
+        for t in range(len(fr)):
+            vec, ok_ = _escape(t, t3[t]); resid[t] = np.linalg.norm(vec); t3[t] = t3[t] + vec
+        push = push_s + resid
+        full = np.zeros((T, 3), np.float32)
+        idx = np.clip(np.searchsorted(fr, np.arange(T)), 0, len(fr) - 1)
+        left = np.clip(idx - 1, 0, len(fr) - 1)
+        pick = np.where(np.abs(fr[idx] - np.arange(T)) <= np.abs(fr[left] - np.arange(T)), idx, left)
+        full[:] = t3[pick]
+        print(f"  ep{ep:02d} push-out(closest): raw max {mag.max()*100:.0f} cm (median of pushed {np.median(mag[mag>0])*100 if (mag>0).any() else 0:.0f}), "
+              f"smoothed max {push_s.max()*100:.0f} cm, residual max {resid.max()*100:.1f} cm, frames with residual {(resid>0).sum()}/{len(fr)}", flush=True)
+        return full, obj_s
     push = np.zeros(len(fr), np.float32); dirs = np.zeros((len(fr), 3), np.float32)
     for t in range(len(fr)):
         dirv = t3[t] - hand_c[t]; n = np.linalg.norm(dirv)
@@ -216,7 +338,7 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
         # 29 cm from the hand, 40 px off its mask); refine to 0.5 cm so the hand ends ON the surface
         lo, hi = 0.0, None
         for step in (0.0, 0.03, 0.06, 0.10, 0.15, 0.22, 0.30, 0.40, 0.55):
-            local = (hand_pts[t] - (t3[t] + step * dirv)) / float(obj_s)
+            local = ((hand_pts[t] - (t3[t] + step * dirv)) @ Rf[t]) / float(obj_s)
             if penetration_depth(local, mv, mf).max() <= 0.0:
                 hi = step; break
             lo = step
@@ -225,7 +347,7 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
         else:
             while hi - lo > 0.005:
                 mid = 0.5 * (lo + hi)
-                local = (hand_pts[t] - (t3[t] + mid * dirv)) / float(obj_s)
+                local = ((hand_pts[t] - (t3[t] + mid * dirv)) @ Rf[t]) / float(obj_s)
                 if penetration_depth(local, mv, mf).max() <= 0.0: hi = mid
                 else: lo = mid
             push[t] = hi
@@ -256,27 +378,52 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T):
             nrm = np.linalg.norm(dsm, axis=1, keepdims=True)
             dirs[sl] = np.where(nrm > 1e-6, dsm / np.maximum(nrm, 1e-6), dirs[sl])
     t3 = t3 + push_s[:, None] * dirs
-    resid = np.zeros(len(fr), np.float32)
-    for t in range(len(fr)):
-        local = (hand_pts[t] - t3[t]) / float(obj_s)
+
+    def _need(t):
+        """extra push along dirs[t] (m) that clears the hand at frame t from the current t3."""
+        local = ((hand_pts[t] - t3[t]) @ Rf[t]) / float(obj_s)
         if penetration_depth(local, mv, mf).max() <= 0.0:
-            continue
+            return 0.0
         lo, hi = 0.0, None
         for step in (0.01, 0.02, 0.04, 0.07, 0.10, 0.15, 0.22, 0.30):
-            local = (hand_pts[t] - (t3[t] + step * dirs[t])) / float(obj_s)
+            local = ((hand_pts[t] - (t3[t] + step * dirs[t])) @ Rf[t]) / float(obj_s)
             if penetration_depth(local, mv, mf).max() <= 0.0:
                 hi = step; break
             lo = step
         if hi is None:
-            hi = 0.30
-        else:
-            while hi - lo > 0.005:
-                mid = 0.5 * (lo + hi)
-                local = (hand_pts[t] - (t3[t] + mid * dirs[t])) / float(obj_s)
-                if penetration_depth(local, mv, mf).max() <= 0.0: hi = mid
-                else: lo = mid
-        resid[t] = hi
-        t3[t] = t3[t] + hi * dirs[t]
+            return 0.30
+        while hi - lo > 0.005:
+            mid = 0.5 * (lo + hi)
+            local = ((hand_pts[t] - (t3[t] + mid * dirs[t])) @ Rf[t]) / float(obj_s)
+            if penetration_depth(local, mv, mf).max() <= 0.0: hi = mid
+            else: lo = mid
+        return hi
+    # The first-pass push was measured along the PER-FRAME direction, then applied along the
+    # SMOOTHED one, so the clearance it buys is not what was measured; the per-frame residual
+    # then re-did up to 30 cm in single-frame steps (moge2: ep28 |a| 55 cm/frame^2 at one frame,
+    # ACC-O proxy 1.63). Repeat the ENVELOPE pass against the actual residual (measured along
+    # the smoothed direction) before the per-frame pass: the per-frame pass then only covers the
+    # smoothing error, which is cm-level.
+    for _ in range(3):
+        need = np.array([_need(t) for t in range(len(fr))], np.float32)
+        if need.max() <= 0.0:
+            break
+        env = np.zeros_like(need)
+        for sl in stretches(fr):
+            if sl.stop - sl.start >= 3:
+                # per-frame rotation (track) makes the required push vary faster than a size-25
+                # window follows: sub_track1 still had 26.8 cm single-frame residuals on ep25.
+                # Wider dilation + a 2 cm margin, three rounds.
+                env[sl] = gaussian_filter1d(maximum_filter1d(need[sl], size=37, mode="nearest"), 6.0, mode="nearest") + 0.02
+            else:
+                env[sl] = need[sl]
+        env = np.where(need > 0, np.maximum(env, 0.0), env)
+        push_s = push_s + env
+        t3 = t3 + env[:, None] * dirs
+    resid = np.zeros(len(fr), np.float32)
+    for t in range(len(fr)):
+        resid[t] = _need(t)
+        t3[t] = t3[t] + resid[t] * dirs[t]
     push = push_s + resid
     full = np.zeros((T, 3), np.float32)
     idx = np.clip(np.searchsorted(fr, np.arange(T)), 0, len(fr) - 1)
@@ -329,6 +476,15 @@ def main() -> None:
     ap.add_argument("--skip-existing", action="store_true",
                     help="resume: skip episodes whose npz already exists (the PEN push-out is CPU "
                          "heavy and the harness kills long foreground jobs)")
+    ap.add_argument("--eps", type=int, nargs="*", default=list(range(30)))
+    ap.add_argument("--obj-depth-stat", choices=["median", "p20"], default="p20")
+    ap.add_argument("--mesh-dir", default="work/meshes", help="work/meshes_v2 has the re-run meshes with layout poses")
+    ap.add_argument("--obj-rot", choices=["identity", "layout", "track"], default="identity")
+    ap.add_argument("--push", choices=["centroid", "closest"], default="centroid", help="push-out direction: hand->centroid (old) or minimal escape to the closest surface")
+    ap.add_argument("--contact-anchor", action="store_true", help="shift MoGe depth so contact frames put the object at the hand")
+    ap.add_argument("--rot-tag", default="", help="suffix of the tracked rotation file (e.g. _ss)")
+    ap.add_argument("--obj-depth", choices=["mask", "moge"], default="mask",
+                    help="object depth source: mask size (default) or MoGe object/person depth ratio")
     ap.add_argument("--smooth", type=float, default=0.0, metavar="SIGMA",
                     help="Gaussian sigma in frames, applied to pose WITHIN each scored stretch. "
                          "Depth is the one direction 2D keypoints do not constrain, so the limbs "
@@ -337,6 +493,8 @@ def main() -> None:
                          "filtering beats in-loop penalties here, which saturate: w_jacc=5 left "
                          "|a_pred| at 2.8x while driving reprojection error to 66 px.")
     a = ap.parse_args()
+    global OBJ_DEPTH, OBJ_DEPTH_COL, CONTACT_ANCHOR, PUSH_MODE
+    OBJ_DEPTH = a.obj_depth; OBJ_DEPTH_COL = 0 if a.obj_depth_stat == "median" else 1; CONTACT_ANCHOR = a.contact_anchor; PUSH_MODE = a.push
     a.out.mkdir(parents=True, exist_ok=True)
 
     eps_len = {json.loads(l)["episode_index"]: json.loads(l)["length"]
@@ -347,7 +505,7 @@ def main() -> None:
     ground = json.load((ROOT / "work/camera/ground.json").open())
 
     report = []
-    for ep in range(30):
+    for ep in a.eps:
         if a.skip_existing and (a.out / f"episode_{ep:06d}.npz").exists():
             continue
         T = max(eps_len[ep], scored[str(ep)]["last"] + 1)
@@ -389,21 +547,64 @@ def main() -> None:
                         idx, left)
         pose = pose_s[pick].astype(np.float32)
 
-        obj_mesh = ROOT / f"work/meshes/{meta[ep]['object']}.glb"
+        obj_mesh = ROOT / a.mesh_dir / f"{meta[ep]['object']}.glb"
+        R_seq = None
+        if a.obj_rot == "track":
+            # per-episode mesh + per-frame rotation from the silhouette tracker; non-scored rows
+            # take the nearest tracked frame's rotation
+            obj_mesh = ROOT / f"work/objtrack/ep{ep:06d}_mesh.glb"
+            rp = ROOT / f"work/objtrack/ep{ep:06d}_rot{a.rot_tag}.npz"
+            if not rp.exists(): rp = ROOT / f"work/objtrack/ep{ep:06d}_rot.npz"
+            rz = np.load(rp); rf, RR = rz["frame_ids"], rz["R"]
+            ii = np.clip(np.searchsorted(rf, np.arange(T)), 0, len(rf) - 1); ll = np.clip(ii - 1, 0, len(rf) - 1)
+            pk = np.where(np.abs(rf[ii] - np.arange(T)) <= np.abs(rf[ll] - np.arange(T)), ii, ll)
+            R_seq = RR[pk].astype(np.float32)
         if a.object in ("mesh", "place") and obj_mesh.exists():
             # "place" fell through to the 0.3 m placeholder box in v3: every object_scale came
             # out exactly 3.33x (=1/0.3) its metric size, the push-out ran against a box, and
             # the box would have been submitted. One condition, whole export poisoned.
             mesh = trimesh.load(str(obj_mesh), force="mesh", process=False)
+            if a.obj_rot == "layout":
+                # ORIENTATION, BAKED INTO THE EPISODE MESH. SAM 3D Objects' layout quaternion
+                # (wxyz, matrix transposed -- verified against its own pointmap, median 0.066 m
+                # vs 0.158 identity, and by silhouette IoU 0.65 vs 0.41) gives the object's
+                # rotation in the crop camera; R_ray carries it to the full camera (a crop at the
+                # image edge is ~30 deg off-axis). Constant over the episode (v1): rotating the
+                # vertices once keeps object_rotation = I and leaves placement/push-out untouched.
+                from scipy.spatial.transform import Rotation as _Rot
+                pj = json.load((ROOT / a.mesh_dir / f"{meta[ep]['object']}_pose.json").open())
+                q = np.array(pj["rotation_quat"]); R = _Rot.from_quat(np.r_[q[1:], q[0]]).as_matrix().T
+                Kc = json.load((ROOT / "work/camera/intrinsics.json").open())[meta[pj["view"]["ep"]]["camera"]]
+                b_ = pj["view"]["bbox"]; ray = np.array([((b_[0] + b_[2]) / 2 - Kc["cx"]) / Kc["fx"], ((b_[1] + b_[3]) / 2 - Kc["cy"]) / Kc["fy"], 1.0]); ray /= np.linalg.norm(ray)
+                ax = np.cross([0, 0, 1.0], ray); sn = np.linalg.norm(ax)
+                R_ray = _Rot.from_rotvec(ax / sn * np.arctan2(sn, ray[2])).as_matrix() if sn > 1e-8 else np.eye(3)
+                R_full = R_ray @ R
+                mesh = trimesh.Trimesh(np.asarray(mesh.vertices) @ R_full.T, np.asarray(mesh.faces), process=False)
+                print(f"  ep{ep} object rotation baked: rotvec {np.round(_Rot.from_matrix(R_full).as_rotvec(), 3).tolist()} (|θ| {np.degrees(np.linalg.norm(_Rot.from_matrix(R_full).as_rotvec())):.0f} deg)")
         else:
             mesh = trimesh.creation.box(extents=(0.3, 0.3, 0.3))
+        # Write the BUDGETED mesh (4096 v / 4096 f), i.e. exactly what the host scores after the
+        # packer's own decimation (idempotent to re-budget). The raw SAM3D-Objects mesh has
+        # 100k-400k faces: the local PEN self-check was doing SDF against it for 9877 frames
+        # (place7: 35 min and counting at 800% CPU) and was not even testing the right surface.
+        if len(mesh.faces) > 4096 or len(mesh.vertices) > 4096:
+            sys.path.insert(0, str(ROOT / "work/kit/v2d_submission_kit"))
+            from v2dlb.mesh_budget import budget_mesh
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".obj", delete=False) as _f:
+                mesh.export(_f.name)
+                bv, bf = budget_mesh(_f.name, 4096, 4096)
+            bf = np.asarray(bf, np.int64); bf = bf[(bf[:, 0] != bf[:, 1]) | (bf[:, 1] != bf[:, 2])]
+            mesh = trimesh.Trimesh(np.asarray(bv, np.float64), bf, process=False)
         mesh.export(a.out / f"episode_{ep:06d}_object.obj")
 
         obj_R = np.tile(np.eye(3, dtype=np.float32), (T, 1, 1))
         obj_t = np.zeros((T, 3), np.float32); obj_s = np.float32(1.0)
         if a.object == "place":
             obj_t, obj_s = _place_object(ep, meta[ep]["camera"], pose, b["scales"], b["shape"],
-                                         fids, mesh, a.smooth, T)
+                                         fids, mesh, a.smooth, T, R_seq=R_seq)
+            if R_seq is not None:
+                obj_R = R_seq
         np.savez(a.out / f"episode_{ep:06d}.npz",
                  pose=pose, scales=b["scales"].astype(np.float32), shape=b["shape"].astype(np.float32),
                  object_rotation=obj_R, object_translation=obj_t, object_scale=obj_s)

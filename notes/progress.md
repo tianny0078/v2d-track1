@@ -797,3 +797,214 @@
 - `08:20` **sub_refine 导出完成，PEN 闸 0.0 通过**；ACC-H 闸那行因 `bash -c` 嵌套引号破坏 f-string（SyntaxError）未出数，改用普通 heredoc 补算。
   ❌ 自纠（第三次估时间出错，且这次动了手）：我以"跑太久"为由杀了 place6 的 `score_local`，它实际只跑了 **4:37**，
   是把它和 1 小时前的 bash 外壳混为一谈。place6 已被 place7 取代，无损失。**规则：kill 之前必须打印并核对目标进程自己的 etime。**
+- `08:35` ❌ **第八次提交（commit `2880a35`，今日第 3/5）：关键点精修让 CD-H 变差。**
+
+  | 指标 | #7 原始 SAM3D | **#8 +关键点精修** |
+  |---|---|---|
+  | CD-H | **17.86** | 22.86 ❌ (+5.0) |
+  | ACC-H | 0.150 | 0.159 |
+  | PEN | 0 | 0 ✅ |
+  | CD-O / ACC-O | 573.9 / 0.074 | 570.0 / 0.074（物体未动）|
+
+  本地证据（px_err 6.7→2.7、深度中位不变、|Δpose| 0.032）全部"向好"，真实指标变差。
+  **机理**：单目 2D 关键点约束不到肢体深度；精修把这个自由度用来降 2D 误差——经典的 2D 过拟合。
+  出题方 `mv_optimize_mhr_params.py` 之所以有效，是因为用的是**多视角**关键点。
+  **结论：人体定格为第 7 次的原始 SAM3D 身体（+wrap-safe σ=3 平滑），不做单目关键点精修。**
+  再次印证：px_err 从来不是 CD-H 的代理；本地能预测的只有 ACC（二阶差）和 PEN（自指）。
+- `09:30` **place7（推出方向也平滑）完成**：ACC-O 代理 **mean 0.124 / max 0.542**（place6 1.20，place5 1.68）；
+  23/30 段残余推出为 0，方向平滑起效。超过 0.3 的只剩 ep15 0.54、ep18 0.34、ep2 0.31。
+  **决策规则修正**：`max<0.3` 是抓 bug 的闸，不应是提交与否的规则。指标是段均值：0.124 若与真值不相关，
+  预期 ACC-O ≈ √(0.124²+0.074²) ≈ 0.145（排名约 5→10），而 CD-O 预期从 574 降到几十 cm（约 24→?）。
+  两轴等权 → 净正。**前提：PEN = 0 且检查表（离手距离、投影偏移）合理。**
+- `09:45` **place7 剩余三个 ACC-O 离群段定位**（均为小问题，不阻塞提交）：
+  ep18（0.34）z 主导、连续三帧 118–120、掩码稳定 177 px → **深度项钳位处的拐点**（σ=6 平滑在钳位之前，钳位又折出拐角）；
+  ep15（0.54）几帧残余推出的小台阶（掩码 84 px 稳定）；ep2 仅那段 **8 帧**区间坏（0.84），另两段 0.06/0.04。
+  v8：平滑移到钳位**之后**。作为后续排队，不阻塞 place7。
+- `10:10` **用户指示：暂缓提交，以解决问题为主。** place7 不提交（PEN/检查表仍在算，结果留作物体线参考）。
+  转去研究 FlowHMR（https://flowhmr.github.io/）：读方法、clone 代码、评估是否可用于本赛题。
+- `10:30` **FlowHMR 评估（arXiv 2610.03691，github flowhmr/flowhmr，HF fafsaf1/flowhmr-0.46B 无门禁）**
+  - 方法：0.46B MM-DiT **flow matching** 做视频条件的整段运动生成，GRPO 后训练（PHC+ 物理跟踪奖励，Isaac Gym）。
+    输出 **SMPL-H** `poses(T,52,3) + trans(T,3)`，**世界系全局根轨迹**。
+    条件：SAM 3D Body 的 pose-token 特征（forward hook 抓 decoder 输出，不是 MHR 参数）+ VGGT-Ω 相机朝向。
+  - 结果：RICH **WA-MPJPE 56.7 mm**（GVHMR 82.8、PromptHMR 72.3）、PA-MPJPE 31.4（最好）；
+    Wild-4K 物理可跟踪率 82.5%（GVHMR 62.8%），穿透 0.06 mm、悬浮 0.20 mm。消融：预训练模型已 PA 30.8，RL 主要买物理合理性。
+  - **与本赛题的契合点**：CD-H 是"整段一次 Sim(3) 对齐后的 Chamfer"，对应 **WA**-类指标；我们的弱点正是逐帧 SAM3D 的
+    全局轨迹/肢体深度不连贯。FlowHMR 恰好提供"整段连贯的世界系轨迹"。
+  - **可绕过的门槛**：相机静止 → VGGT-Ω（gated）的朝向条件应退化为常量；检测用自己的掩码代替 YOLOX；SAM3D 已有。
+  - **风险**：V2M 环境钉 torch 2.5.1+cu118（无 sm_120）；核心是 MM-DiT + torchdiffeq 纯 PyTorch，尝试在 cu128 上直接跑。
+    SMPL-H neutral 模型需 MANO 注册（gated，手动）。
+  - **接入方案**（优先 B）：A. SMPL-H → MHR 官方转换器（有转换损失）；
+    **B. 只用 FlowHMR 的关节/全局轨迹作时序与轨迹先验，拟合我们的 SAM3D-MHR 序列**（无拓扑转换，保留 SAM3D 身份）。
+- `10:50` **SAM3D 逐帧身份离散度（回答用户）**：shape(45) 逐帧 std 范数 ≈ 1.08、scales 0.21（参数空间抖动不小），
+  但几何上隐含身高 std 仅 **1.0 cm**，换成整段中位身份顶点平均只动 **0.54 cm**（最大 ep4 1.04）。中位身份安全；逐帧不一致的大头在姿态/深度。
+- `10:50` **检测/分割现状**：人体 = SAM2 传播掩码（tracking）+ SAM3D 逐帧回归；物体 = SAM2 传播掩码但 3D 位姿逐帧由掩码几何推出、无 3D tracking → 抖动根源。
+  用户建议 detection-by-tracking（6-DoF 注册后跟踪）正确，与出题方 FoundationPose register-then-track 一致。
+- `11:05` **FlowHMR 接入读码（决定性）**：
+  - `run_generation()` 直接用 **`camera_RT = eye(4)`**（T 帧单位阵）——web/lite 模式就是这样跑的 → 静止相机直接走这条路，**不需要 VGGT-Ω**。
+  - `camera_world="vggt_opencv_raw"`：单位阵时世界系 = OpenCV 相机系（x 右 y 下 z 前）= 我们的提交系 → 输出 `trans` 直接可用。
+  - `build_lite()` 跳过 YOLOX/SAM3D，只吃预抽的 `sam_tokens`（body token + 左右手 token，hook 抓 decoder 输出）→
+    **需要 SAM3D full 模式**（含手），我之前的批量是 body 模式，要按其 `runtime_sam_features` 提取器重抽。
+  - 身体模型 `SMPLSkeleton(model_path)` 需 SMPL-H neutral（MANO 注册）；NAS 搜索进行中。
+  - 已装 torchdiffeq/transforms3d/PyYAML（不动 torch 2.9.1+cu128）。
+- `11:20` ❌ **FlowHMR 唯一硬门槛：SMPL-H neutral 体模型**。NAS 全盘只有 MANO 手模型（`hot3d/mano_v1_2/models/MANO_{LEFT,RIGHT}.pkl` 等），
+  无 `SMPLH_*.pkl` / `smplh/neutral/model.npz`。FlowHMR 的 `generate()` 不需要体模型，但其输出（SMPL-H rot6d/shapes/trans）
+  要变成关节/顶点（转 MHR 或作先验）必须 SMPL-H FK。→ 需用户在 mano.is.tue.mpg.de 注册下载 "Extended SMPL+H (AMASS)"，
+  放到 `work/flowhmr/assets/body_models/smplh/neutral/model.npz`。**部分解锁**：先跑生成并缓存输出，FK 待模型到位。
+- `11:20` 写了 `src/flowhmr_tokens.py`：用我们的帧/掩码框/MoGe 内参逐帧调用其 `Sam3DTokenExtractor.extract_frame(inference_type="full")`，
+  对连续范围（first−30…last）抽 token，评分帧之后再挑（运动生成模型假设 30 fps 连续帧，评分区间有 gap 不能直接喂）。ep14 测试中。
+- `11:30` 第四次 `pkill/pgrep` 自匹配误杀当前 shell。**规则再次明确：进程匹配一律 `pgrep -f "^python3 …"` 锚定；能不 kill 就不 kill。**
+  `flowhmr_tokens.py` 的 `cam_int` 改为 torch tensor（和 SAM3D 直接调用时同一个坑），ep14 测试重启。
+- `11:45` **place7 PEN 自检慢的根因**：导出目录里的 `episode_*_object.obj` 是 SAM3D 原始 10–40 万面网格，
+  `score_local` 对它做 9877 帧 SDF（35 min+，CPU 800%），且**测的不是 host 评的那张网格**（packer 降采样到 4096 面）。
+  导出器改为直接写降采样网格（packer 重算幂等）→ 本地 PEN 自检与提交几何一致，且快 ~50×。place7 的自检让其跑完。
+- `11:45` FlowHMR 权重此前**并未在下载**（`--include "flowhmr_latest/*"` 未匹配到文件，缓存为空）；改按文件名显式下载。
+  `src/flowhmr_generate.py` 已写好：绕过 `build_lite`（它无条件构造 SMPL-H 体模型），只用 `build_pipeline + generate`，
+  相机用单位阵（与官方 web/lite 路径一致，静止相机下不是近似）。
+- `12:05` **SMPL-H 无门禁镜像（用户提示后找到）**：HF `RoninZYR/smplh`（gated=False，SMPLH_NEUTRAL.npz）、`Kleinhe/CAMD`（body_models/smplh/*.npz + mano/smplh/*.pkl）、
+  `lithiumice/models_hub`、GitHub `sxyu/smplxpp`。已下载，两镜像 SMPLH_NEUTRAL.npz 均 87.3 MB，键集一致（smplx 格式，16 betas，52 关节）。
+  FlowHMR 加载器还读 `hands_meanl/r`（AMASS 版 model.npz 才有）——核对是否必需；必需则从 NAS 的 MANO pkl 补齐。
+- `12:05` FlowHMR 权重已到（显式按文件名下载 24 s）。`config.yml`：`max_len 180`、`motion_fps 30`——训练长度 6 s；`generate(length=T)` 无滑窗，>180 帧的处理待核。
+- `12:15` `hands_meanl/r` 在 FlowHMR 加载器里是**可选**键 → 镜像 `SMPLH_NEUTRAL.npz` 直接可用，已放到 `work/flowhmr/assets/body_models/smplh/neutral/model.npz`。
+  `generate()` 以特征长度 T 生成、无硬上限（官方 demo 整段喂），>180 帧质量待实测。
+- `12:25` SMPL-H FK "身高 0" 是我的测试输入错：FlowHMR 的 `rot6d_to_rotation_matrix` 按 `view(3,2)` **行主序**读 6D，单位旋转应编码为 `[1,0, 0,1, 0,0]`。
+  生成输出的 rot6d 同一约定，后续解码不需转换。
+- `12:30` SMPL-H FK 验证通过：零姿态身高 **1.717 m**、T-pose 臂展 ±0.87 m、52 关节、**y 朝上**（头 +0.35、脚 −1.09）。
+  注意：SMPL 世界系 y 朝上，我们的提交/相机系 y 朝下 → FlowHMR 输出的坐标约定待实测确定（与 SAM3D 关节在候选翻转下比对）。
+- `12:40` **FlowHMR token 抽取跑通**：ep14 → tokens (382, 3072)，382/382 帧 OK，**0.69 s/帧**（SAM3D full 模式含双手，用我们的掩码框 + MoGe 内参）。
+  全部 30 段（连续范围 ≈ 15k 帧）分两张 GPU 并行抽（GPU0: ep0–13，GPU3: ep15–29），约 1.5 h。
+  生成首次失败仅因 pipeline 按 CWD 相对解析 SMPL-H 路径；改传绝对路径。
+- `12:50` 生成第二次失败：缺 `assets/body_models/smpl_neutral_J_regressor.pt` —— 是 **GVHMR 的公开资源**（raw.githubusercontent 直链，无门禁），已下载。
+- `13:00` ⭐ **FlowHMR 在 Blackwell/cu128 上跑通**（torch 2.9.1+cu128，未改任何 torch 依赖）：4.6 亿参数加载正常，
+  ep14 **382 帧一次生成 2.2 s**（T > 训练长度 180，能跑）。输出：rot6d(T,52,6)、shapes(16)、trans(T,3)、pelvis_world、foot_contacts、local_joints_positions。
+  J regressor 来自 GVHMR 公开直链。两个 token worker 正常（0.69 s/帧，两卡并行）。
+- `13:10` **FlowHMR ep14 与 SAM3D 对比**（15 个共同关节，整段 Sim3 对齐后）：平均关节差 **4.1 cm**（各关节 2.7–5.3 cm），
+  骨盆轨迹长度 0.95 m vs SAM3D 1.02 m，骨盆平均偏移 5.3 cm —— 两者高度一致，说明 FlowHMR 的世界轨迹是可信的。
+  关键差异：**FlowHMR 关节加速度 0.133 cm/帧²（真值 0.145），SAM3D 原始 0.854** —— 不做任何后平滑就已在真值水平。
+  重投影 8.6 px（SAM3D 6–9 px）。帧坐标：FlowHMR 为 SMPL 世界系（y 向上、原点在地面，骨盆 y≈1.0），任何正旋转都能被 Sim3 吸收，
+  进 MHR 流程时用整段 Sim3 把它贴到 SAM3D 的相机系即可。
+- `13:12` 长序列测试：382 帧整段生成 vs 只生成前 180 帧，重叠段关节差 1.3 cm、平移差 0.6 cm —— 超过训练长度 180 不劣化；同 seed 完全可复现。
+  **结论：FlowHMR 可用。路线 B：以 FlowHMR 的关节/轨迹为时序先验，拟合我们的 SAM3D-MHR 序列（形状仍用 SAM3D 的中位数身份）。**
+- `13:40` **FlowHMR→MHR 拟合器 `src/fit_flowhmr.py` 跑通（路线 B）**：19 个躯干关节 + 30 个手关节对应，整段一个 Sim3 把 FlowHMR 贴到
+  SAM3D 相机系，Adam 优化 pose[T,136]（SAM3D 身份不动、躯干姿态弱先验）。ep14（83 个计分帧，12 s）：
+  关节差 4.55→2.01 cm，**ACC-H 代理 0.852→0.255**（真值 0.145，导出时再加 σ=3 平滑），重投影 4.87→7.43 px（FlowHMR 不逐帧贴图像，预期内）。
+  先验权重 1.0/0.1/0 结果几乎相同 → 保持默认。导出器直接用 `--body work/body_flow --body-source fit`。
+- `13:45` 挂起 `src/run_flowhmr_all.sh`（nohup，日志 `logs/run_flowhmr_all.log`）：等 token 完成 → 30 集生成 → 拟合 → 导出 `work/sub_flow1`（σ=3，物体 place）→ 门控。token 3/30（两 worker 各 ~9 min）。
+- `13:50` 用户提议 **Agentic 人体优化**，子代理完成文献调研 + 方案 → `notes/agentic-body-plan.md`。要点：
+  (1) 2024–26 没有"VLM/LLM 代理做单目人体网格测试时优化"的直接先例；最近的是 CVPR'26 VLM-Guided Group Preference Alignment（VLM 打分与 PVE 的 SRCC 仅 0.60）、
+  MHE-Former（VLM 选假设，指标无增益）、VLMPose（ECCV'26，6D 物体位姿的评估者/提议者闭环，离散单轴动作）、VLM3D（ICML'26，冻结 VLM 当可微评论家）、AGILE（Gemini 选关键帧 + 拒绝采样，物体 CD 提升 10 倍）。
+  **共识：VLM 擅长离散合理性判断（翻转、半圈、穿地、A/B），对度量深度/尺度基本盲**——而后者正是我们 CD-H 的主误差。
+  (2) 方案：代理只做诊断/选工具/接受候选，不吐姿态数值；动作离散化；验证器三层（硬门控→多源一致性→VLM 双序成对判断）；
+  **校准：CD-H 是 30 集的无权平均（已查 CD-H.py），"子集互换提交"可得每集精确 ΔCD-H**；Python 循环 + Claude API（无 API key，需用户提供）约 $12/轮。
+- `14:05` ⚠️ **纠错：`work/baseline_episodes`（`baseline_track1.parquet`）是 Kaggle 的 sample submission 占位文件**——所有集所有帧同一个静止姿态、
+  物体是原点处 30 cm 方块——**不是**榜上 "CARI4D Basline" 的输出（那份不可下载）。之前用它做 `--ref` 的任何 CD 数字都无意义，已把 `src/score_local.py --ref` 的
+  三个僵尸进程（最久 3.5 h，占 780% CPU）杀掉。榜上 CARI4D 真实分数：CD-H 15.58（第 17）、CD-O 23.16（第 7）、ACC-H 1.97、ACC-O 0.73、PEN 0.004；我们 17.86 / 145.4 / 0.145 / 0.074 / 0。
+  新工具 `src/compare_ref.py`（frame-0 Sim3 + 身体代理 CD + 骨盆 + 物体质心距离）保留，用于我们自己导出 A/B 的对比。
+- `14:08` **物体诊断（sub_place7，计分帧 = 手物接触段）**：物体质心到最近手腕的中位距离 45 cm；明显错误的集：
+  ep1 212 cm、ep2 163、ep8 157（物体仅 12×16×31 cm！）、ep19 103、ep0 99、ep18 89、ep10 88；ep4/7/12/14/20/21 中位数正常但 max 120–160 cm（接触段内物体被放下/遮挡时漂走）。
+  → 物体全局位置错 1 m 量级正是 CD-O 145 的来源（CARI4D 23）。这直接支持用户的 **detection-by-tracking** 方向：6-DoF 跟踪 + 接触段内手部锚定，而不是逐帧按 mask 大小定深度。
+- `14:40` place7 的 PEN 门控（`check_export.sh` 里跑整套 `score_local.py`）被我 14:00 清理僵尸进程时一起杀了（它就是那个跑了 1 h 的进程），
+  日志里只留下 ep3（pen 5e-7 cm）。提交暂停中，此门控只在提交前需要；下次改成只跑 PEN 的快速版本。
+  顺带：ep0–2 的物体是 hula_hoop（77×86×5 cm），质心离手 1 m 内属正常（握在圈边），但 ep1 的 212 cm 仍是错的。
+- `15:05` **物体深度新来源：MoGe 深度比**（`src/object_depth.py` → `work/objdepth/`，`export_episodes.py --obj-depth moge`）。
+  思路：同一帧 MoGe 深度图里 物体 mask 深度 / 人体 mask 深度 与全局尺度无关，人的深度用 SAM3D 的（身体顶点投影进人 mask 的 35 分位数 ≈ 可见前表面），
+  z_obj = z_person × ratio；mask 大小定深度只作兜底。ep1 抽样 22 帧：ratio 中位 0.76（p10 0.69 / p90 0.91），0.7 s/帧。全 30 集在 GPU1 上跑（~1.5 h）。
+  坑：`nohup setsid … &` 启动的 python 日志为空是 stdout 缓冲，不是死了——我误以为崩了又启了一份，已杀重复进程（核对 etime 后）。
+- `15:40` ⭐ **MoGe 深度比定位立竿见影**（`sub_moge1` vs `sub_place7`，物体质心到最近手腕 中位/最大 cm）：
+  ep8 157/166 → **31/43**，ep19 103/141 → **36/78**，ep2 163/181 → 83/127（呼啦圈半径 43 cm，握边属正常），ep0 99/127 → 87/123；
+  物体平移 |a| ep8 0.10→0.03、ep19 0.17→0.04（mask 大小抖动不再进深度）。呼啦圈集 |a| 仍 3.6–4.0（细环 mask 里 MoGe 深度混入背景地面，待用 p20 代替中位数）。
+- `15:45` ⚠️ **ep1 的人体 mask 分到了坐在桌边的旁观者身上**（`web/assets/person_mask_review.jpg` 第 2 格，蓝色在桌边的人，主体拿呼啦圈的人无 mask），
+  因此 ep1 的 SAM3D 身体（root 深 5.7 m、身高 1.02 m）、关键点、FlowHMR token、物体位置全部作废。其余 29 集中间帧目测主体正确；
+  逐帧"人-物距离/质心跳变"检测在后台跑。修法：人工种子框（frame 155: 705,400,930,900）重新传播人 mask，再重跑 ep1 的全部下游。
+- `15:55` **ep1 人体 mask 已修**：`seed_object.py` 加 `--channel 1`，frame 155 框 (705,400,930,900) 传播，主体 547/547 帧全有 mask（中位 32,111 px，
+  检查图 `web/assets/ep1_person_reseed.jpg`）。原因查明：自动 person_refix 规则把 ep1 的 mask 从主体（32,083 px）换到了旁观者（11,360 px）；
+  扫了 30 集的 refix 记录，只有 ep1 是"变小"的（其余是把过小的 mask 修大或没动），所以是孤例。旧产物移到 `work/stale_ep1/`，
+  下游链 `src/redo_ep1.sh`（kp2d → SAM3D → FlowHMR token → MoGe 深度）在 GPU2 上重跑。
+- `16:58`（校时：本机时钟为 PDT，`TZ=Asia/Shanghai date` = 北京时间，本日志时间戳按北京时间；此前条目为估算，可能偏早约 1 h）
+- `17:05` place8（clamp 后再平滑）导出完成，ACC-O 代理 mean 0.103 / max 0.347（place7 0.124 / 0.542），最差 ep15 0.35、ep2 0.31；仍过不了 0.3 门槛但在收敛。
+  物体路线已转向 MoGe 深度比（见 15:40），place8 只作对照，不提交。
+- `17:20` MoGe 深度统计量：物体 mask 内取 **p20（最近表面）** 代替中位数——细环呼啦圈 mask 里混进了背景地面。
+  按计分段计算的物体 |a|（之前 obj_hand_dist 跨段算，呼啦圈集虚高到 4）：ep2 place7 0.31 → moge_p20 **0.04**，ep0 0.02 → 0.02；
+  手腕距离 ep2 163 → 61 cm、ep0 99 → 80、ep8 157 → 29、ep19 103 → 36。p20 设为 `--obj-depth moge` 的默认。
+- `17:30` 看板加了 3 个阶段（FlowHMR token、FlowHMR→MHR 拟合、MoGe 物体深度比），总进度口径随之从 77.2% 变为 **67.7%**（分母变大，不是倒退）。
+  ep1 重算：SAM3D 身体 root 深度中位 **3.16 m**（错人时 5.7 m），174/174 帧 ok；token 重算中。
+- `17:45` **ep1 重算完成**（kp2d → SAM3D → token → MoGe 深度，共 9 min）。MoGe 定位后 ep1 物体-手腕中位 **212 → 33 cm**，骨盆距 225 → 48 cm，|a| 0.06。
+  注意：呼啦圈这种细环（mask 填充率 0.12，ep8/19 实心物体为 0.8）MoGe 深度比中位 1.54 是穿过环看到的墙，靠"手±1.5 m"钳位兜住；
+  ep1 仍有少数帧离手 154 cm，细物体应改为手部锚定（接触段内 z_obj ≈ z_hand）。
+- `17:55` 细物体规则：物体 mask 填充率中位 < 0.2（呼啦圈 0.12；实心物 0.8）时，深度锚定到最近的手（接触段定义使然）。
+  ep1 物体-手腕 中位/最大 33/154 → **30/56 cm**，|a| 0.16；ep2 未触发（61/102 cm 保持）。`export_episodes.py --obj-depth moge` 已含此规则（THIN_FILL=0.2）。
+  进度：MoGe 深度 9/30，FlowHMR token 22/30。
+- `18:40` **FlowHMR 30 集全部生成（1 min）+ 拟合（~10 s/集）完成**。拟合前 FlowHMR 与 SAM3D 关节差 4–14.5 cm（ep11 14.5、ep4 10.7、ep8 10.1 最大，均为长集），
+  拟合后 ~2 cm；ACC-H 代理（未平滑）从 0.5–7.5 降到 0.10–0.60；代价是重投影 5–9 px → 8–21 px（ep11 20、ep24 21、ep4 17.5）：
+  **FlowHMR 的世界轨迹在长集里相对图像漂移**，整段一个 Sim3 吸收不掉。
+  加了 2D 关键点重投影项（`--w-px`）：ep11/ep4 在 w_px=5 下 px 18→8.3 / 16→8.0，关节差 2→4 cm，ACC-H 0.58→0.90 / 0.24→0.35（导出还有 σ=3 平滑）。
+  两个变体都导出比较：`sub_flow1`（无 px 项，导出中）、`sub_flow2`（w_px=5 + MoGe 物体，排队）。
+- `19:30` 逐帧人体 mask 体检（9,877 计分帧）：除 ep1（扫描用的还是修复前的 mask，20% 帧离物体 >150 px）外，29 集"人-物距离 >150 px"的帧为 0%，
+  质心最大帧间跳变 ≤106 px（ep20/ep2，正常动作幅度），最小 mask ≥16k px → **分错人/漂移只有 ep1 一例，已修**。
+- `18:23` **sub_flow1（FlowHMR 拟合身体 + σ3）导出完成，30 集身体代理 vs #7 身体（sub_place7）**（`src/body_proxy.py`，ACC-H 按计分段、22 关节）：
+  ACC-H 均值 0.087 → **0.063**（最大 0.192 → 0.164），重投影 px 均值（除 ep1）6.6 → **11.9**（最大 21.3，ep24/ep11）。
+  即：更平滑、但离图像更远。榜上 ACC-H 已接近真值下限（0.145 vs 第 1 0.137），所以 FlowHMR 对 ACC-H 的收益有限，
+  对 CD-H 的影响只能靠榜单验证。sub_flow2（w_px=5 把 px 压回 ~8）拟合中。ep1 旧身体（错人）px 262 → 新 12.8。
+  sub_flow1 的物体仍是 mask 定深度（ACC-O 代理 max 0.52），物体以 sub_moge2 为准。
+- `19:51` **sub_moge2 / sub_flow2 导出完成**。物体（MoGe 深度比，30 集 vs place7）：物体-手腕中位距离 >80 cm 的集从 8 个降到 3 个（ep0/ep2 呼啦圈、ep10 大桌子），
+  ep1 212→30、ep8 157→29、ep18 89→38、ep19 103→37 cm。**但 ACC-O 代理 max 1.63（ep28）/ 0.59（flow2）**：物体更贴手 → 穿透推离的"逐帧残差"步长到 30 cm，
+  一帧 |a| 55。已改推离：先对实际残差再做一次包络（max-filter 25 + σ6 + 1 cm 余量）再逐帧收尾；8 个残差 >3 cm 的集重导出中。
+  **另一发现：所有集的物体旋转都是单位阵（SAM 3D Objects 的规范朝向直接用），ep22 的 62 cm 泡沫滚筒在图里横放、我们的网格竖着**——物体朝向从未对过，
+  这是 CD-O 的下一个主项（detection-by-tracking 的旋转部分）。
+  MoGe-p20 与 mask 深度在 ep22 差 1 m，正在用"手在物体 mask 内的帧 → z_obj≈z_hand"做裁决（后台）。
+- `19:52` **身体三方案代理（30 集，ACC-H 按计分段 / 重投影 px）**：#7 身体（raw SAM3D+σ3）0.087 / 6.6（ep1 除外）；
+  sub_flow1（FlowHMR 拟合）0.063 / 11.9；**sub_flow2（FlowHMR 拟合 + w_px=5）0.067 / 7.3** —— 既保留了 FlowHMR 的平滑，又贴回图像，是目前最优身体候选。
+- `19:58` ⭐ **物体朝向：SAM 3D Objects 的 layout 四元数约定已验证**（`src/object_pose.py` 重跑 10 物体 18 s/个，保存 mesh+pose+pointmap 到 `work/meshes_v2/`；
+  `src/object_rot_convention.py`）。两个独立测试一致：(1) 在 crop 相机系里把网格按 (R,t,s) 摆好，与 pipeline 自带 pointmap 的物体像素的中位距离：
+  **quat=wxyz 且取转置** 0.066 m（identity 0.158，其它约定 0.10–0.15，带 y/z 翻转的 >3 m）；(2) 在我们的相机系（加 crop 视线旋转 R_ray）按轮廓 IoU：wxyz^T 0.646（identity 0.411）。
+  → 导出旋转 R = R_ray · Rot(wxyz)^T，先按"整集恒定朝向"版本接进导出器（推离的手部局部坐标要跟着转）。呼啦圈两项测试都差（环内看到地面），其余 9 个物体明确。
+- `20:12` 朝向烘焙测试（ep22/25/8/12，`web/assets/obj_rot_check.jpg`）：**把"最佳视角那一帧"的朝向当整集常量是错的**——
+  ep22 的滚筒在图里横放（mask 158×48 px），identity 网格的长轴朝相机（投影 60×74 px），而 layout 朝向来自 ep21 的最佳帧（那里滚筒是竖的），投影成 70×239 px 的竖条。
+  结论：朝向必须按集、按帧检测 → 关键帧跑 SAM 3D Objects layout（每次 18 s，先测 stage1_only 是否更快且带 rotation）+ 帧间 slerp，即用户说的 detection-by-tracking。
+- `20:14` 关键发现：SAM 3D Objects 的 **canonical 坐标系在不同运行之间不一致**（同一滚筒：v2 网格长轴沿 z，另一帧的运行沿 y），
+  所以"一个物体一个网格 + 别的帧的旋转"不成立；但每次运行自己的 (mesh, R) 是一致的（ep22 f243/f130 轮廓 IoU 0.79/0.72，v2 网格套同一旋转只有 0.13）。
+  stage1_only 3.5 s 也带 rotation。→ 改为 **每集一个网格 + 该集最佳帧的 (mesh,R) 作为跟踪初值**（`src/object_episode_pose.py`，30 集 ×10 s 跑中），
+  然后写逐帧轮廓跟踪（pytorch3d 光栅化，小旋转采样 + 前后向传播 + slerp 平滑）。
+- `20:20` **30 集物体检测完成**（每集最佳帧的 mesh+R 对，8–13 s/集，`work/objtrack/`）。
+  **逐帧朝向跟踪器 `src/object_track.py` 在 ep3 验证**：轮廓 IoU 跟踪 **0.852** vs 种子常量 0.755 vs identity 0.754（碗是圆的所以 identity 不差），
+  0.7 s/帧（49 个候选 × 1/4 分辨率光栅化）。全 30 集分 3 卡跑（~40 min）。下一步：导出器接入逐帧旋转（推离的手部局部坐标要乘 R^T）。
+- `20:31` 推离修复生效：sub_moge2 8 集重导出后残差全 0，**ACC-O 代理 mean 0.158 → 0.081（真值 0.074）、max 1.63 → 0.38**（ep28 0.38、ep7 0.32 仍超 0.3 门槛）。
+  平滑推离量偏大（ep24 66 cm、ep28 57 cm）= 朝向错时手陷在物体里，等朝向跟踪版 sub_track1 看是否下降。
+  跟踪器前 6 集：IoU 跟踪 / 种子常量 / identity = ep0 0.55/0.43/0.06、ep1 0.35/0.12/0.13、ep2 0.30/0.16/0.07（呼啦圈）、ep3 0.85/0.76/0.75、ep4 0.77/0.61/0.67、ep5 0.86/0.69/0.75。
+- `20:33` 小时汇总：物体检测 30/30、朝向跟踪 8/30（3 卡并行，剩余约 1.5 h，之后自动导出 sub_track1）；看板新增"物体检测 / 朝向跟踪"两个阶段。
+  跟踪 IoU（跟踪/种子常量/identity）新增：ep6 0.84/0.59/0.60、ep8 0.78/0.49/0.50。
+- `21:01` ⭐ **物体朝向逐帧跟踪 30/30 完成**：轮廓 IoU 均值 **跟踪 0.660 / 种子常量 0.450 / identity 0.366**。
+  最大改善：ep22 0.02→0.83、ep21 0.10→0.83、ep23 0.57→0.86、ep8 0.50→0.78、ep6 0.60→0.84。仍 <0.5 的 9 集：白桌 ep9/10/11（0.34–0.39）、凳子 ep24/26（0.47/0.39）、
+  推车 ep27/29（0.42/0.40）、呼啦圈 ep1/2（0.35/0.30）——都是种子朝向差或细环。已对这 9 集 + ep0/28 启动"种子帧全局搜索 512 个随机朝向"的重跑（输出 `_rot_ss.npz`，不覆盖）。
+  `sub_track1`（FlowHMR-px 身体 + MoGe 深度 + 跟踪朝向）导出链已自动启动。
+- `21:06` **接触帧深度裁决结果**（手腕 2D 落在物体 mask 内的帧，z_obj − z_hand）：MoGe 与 mask 深度对手的中位 |偏差| 都是 33 cm，
+  但 MoGe 的集内离散度 24 cm vs mask 46 cm（mask 在 ep7/8/18 离散 116–282 cm）。偏差按集/物体系统性不同（桌面物体 −14…−72，熨斗/推车 +23…+56），
+  不是常数。关键认识：**CD-O 在"按人体对齐的 Sim3"之后计算，所以物体只需相对人体正确**→ 加 `--contact-anchor`：
+  用接触帧的中位 (z_hand − z_moge) 平移整段 MoGe 深度，保留其相对运动。ep21/23/26 没有接触帧（手不进 mask）→ 不平移。
+  种子搜索：ep9 种子帧 IoU 0.29→0.69（跟踪 0.34→0.58）、ep10 0.17→0.77、ep24 0.40→0.65。
+- `21:33` 小时汇总：种子搜索重跑 11/11 完成（种子帧 IoU 普遍 0.15–0.47 → 0.44–0.85；跟踪均值 ep9 0.34→0.58、ep10 0.39→0.72、ep26 0.39→0.61、ep27 0.42→0.59、ep29 0.40→0.58），
+  重检测版 5/9 完成（ep11 在跑，803 帧）。`sub_track1` 导出 15/30（每集 ~2 min）；`sub_track2`（接触锚定 + 每集最优朝向）排队中。看板 objtrack 计数改为只数基础 .done。
+- `22:08` **sub_track1 导出完成**（FlowHMR-px 身体 + MoGe 深度 + 逐帧朝向）：物体-手腕距离与 sub_moge2 基本一致（ep22 53→33 cm 因朝向改善），
+  ACC-O 代理 mean 0.099 / max 0.65（ep25 残差推离 26.8 cm×20 帧；逐帧旋转让所需推离变化更快）。推离包络改为 窗 37 + 2 cm 余量 + 3 轮，用于 sub_track2。
+  重检测版 9/9 完成：只有呼啦圈触发了重检测（ep1 3 次、ep2 2 次，IoU 0.38/0.35），其它集没触发（mask 被人挡住时 IoU 本来就低，不是丢跟踪）。
+  每集最优（基础/种子搜索/重检测三选一）由 `select_rot.py` 选，sub_track2 用它 + 接触锚定。
+- `22:08` 每集最优朝向轨迹选定：30 集轮廓 IoU 均值 **0.704**（基础跟踪 0.660，identity 0.366）；8 集换成种子搜索/重检测版。`sub_track2` 导出中（误启了一份旧代码的重复进程，已按 etime 核对后杀掉）。
+- `23:55` **sub_track2 导出完成**（+接触锚定 + 每集最优朝向 + 加强推离包络）。ACC-O 代理 mean 0.101 / max 0.79（ep25 凳子：推离 90 cm、残差 16.8 cm×21 帧；ep7 0.30，其余 ≤0.21）。
+  接触锚定的平移量：桌面物体集一律为正（物体被 MoGe 比值放得太近，ep3 +80、ep10 +69、ep14 +69、ep20 +59、ep22 +50 cm），手持物体集为负（熨斗 ep8 −29、平底锅 ep12 −44、滚筒 ep18/19 −37/−52、推车 ep28/29 −27/−35）；
+  ep13/21/26 无接触帧不平移。解释：人体参考深度用"身体顶点在 mask 内的 35 分位"，人被桌子挡住腿、手臂前伸时偏近 → 比值把物体放近。
+  **哪种对只能靠榜单裁决**：sub_track1（不锚定）和 sub_track2（锚定）是同一问题的两个候选，正是需要子集互换提交来校准的地方。
+  待查：凳子/推车的推离量 55–90 cm 是否因预算网格不水密导致 penetration_depth 误判"手在物体内"。
+- `23:56` 📋 **阶段汇总（提交暂停期间的候选）**，本地代理，无真值：
+  | 导出 | 身体 | 物体 | ACC-H 代理 | 重投影 px | ACC-O 代理 mean/max | 物体轮廓 IoU | 物体-手腕中位 >80 cm 的集 |
+  | sub_place7(#7, 榜 CD-H 17.86/CD-O 145) | raw SAM3D+σ3（ep1 错人） | mask 深度, R=I | 0.087 | 6.6 | 0.124 / 0.54 | 0.37 | 8 |
+  | sub_moge2 | 同上（ep1 已修） | MoGe 深度比, R=I | 0.087 | 6.6 | 0.081 / 0.38 | 0.37 | 3 |
+  | sub_track1 | FlowHMR 拟合 + w_px=5 | MoGe 深度比 + 逐帧跟踪朝向 | 0.067 | 7.3 | 0.099 / 0.65 | 0.66 | 3 |
+  | sub_track2 | 同上 | + 接触锚定 + 每集最优朝向 | 0.067 | 7.3 | 0.101 / 0.79 | 0.70 | 2 |
+  建议的校准顺序（需用户解除暂停）：① sub_moge2（只改物体 + ep1，和 #7 直接可比）→ ② sub_track1 → ③ sub_track2；三次提交即可分离"物体深度 / 朝向+身体 / 锚定"三个效应。
+- `00:49` sub_track2 图像域体检（`src/obj_image_sanity.py`）：投影尺寸/mask 尺寸 中位 0.8–1.35（泡沫块 1.3、凳子 ep26 1.75 偏大；平底锅 ep14 0.46 偏小），
+  质心偏移 10–90 px，最大的是凳子 ep25 87 px、推车 ep27 89 px、滚筒 ep22 74 px、白桌 ep9 72 px —— 都是推离量大的集。
+  预算网格多数不水密，但主办方 penetration_depth 用广义绕数（|w|>0.5），对不水密不敏感 → 大推离更可能是"质心放在手上 → 手在物体中心 → 要推半个物体"的几何原因。
+- `00:50` ep25 凳子诊断图（`web/assets/ep25_push_diag.jpg`，俯视 + 叠加）：推离把凳子推到人身后 0.5 m（f150 物体 z 3.02 vs 手 2.46/2.80），
+  原因是"手→质心"方向推离：手握凳面边缘时手在物体中心附近，要推半个物体才出来。改成 **最小逃逸推离**（`--push closest`）：
+  穿透点 → 最近表面点的加权方向，推 max 深度 + 1 cm，迭代至清零，再做包络平滑 + 逐帧残差。在 ep25/9/27/8 上测试中（`sub_track3`）。
+- `01:25` **用户批准提交一版试试。** 选 sub_track2（FlowHMR-px 身体 + MoGe 深度 + 接触锚定 + 每集最优朝向）：
+  先用新的快速 PEN 门控 `src/pen_gate.py`（主办方 penetration_depth，只算计分帧；`submit_export.sh` 已改用它，旧的 score_local 门控要跑几小时），通过后提交。

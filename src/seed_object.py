@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 MASKS, STATE = ROOT / "work/masks", ROOT / "state/seg"
 
 
-def propagate(ep: int, seeds: list[tuple[int, np.ndarray]], device: str) -> dict:
+def propagate(ep: int, seeds: list[tuple[int, np.ndarray]], device: str, channel: int = 0) -> dict:
     """seeds: [(video_frame, box_xyxy), ...]. SAM 2 accepts prompts at several frames for the same
     object id, which is what long occlusions need -- a single seed propagated across a stretch
     where the body hides the object loses it and never recovers (ep7: 260 of 597 frames lost from
@@ -50,15 +50,16 @@ def propagate(ep: int, seeds: list[tuple[int, np.ndarray]], device: str) -> dict
     del st, pred; gc.collect(); torch.cuda.empty_cache()
 
     area = new.reshape(len(frame_ids), -1).sum(-1)
-    m[:, 0] = new
+    m[:, channel] = new          # 0 = object, 1 = person (ep1: the person mask sat on a bystander)
     np.savez_compressed(MASKS / f"ep{ep:06d}.npz", packed=np.packbits(m, axis=-1),
                         frame_ids=frame_ids, shape=np.array([H, W]))
     rec = json.loads((STATE / f"ep{ep:06d}.done").read_text())
-    rec["obj_px_median"], rec["obj_lost_frames"] = int(np.median(area)), int((area == 0).sum())
-    rec["manual_seed"] = [dict(frame=int(f), box=[int(v) for v in b]) for f, b in seeds]
+    k = "obj" if channel == 0 else "person"
+    rec[f"{k}_px_median"], rec[f"{k}_lost_frames"] = int(np.median(area)), int((area == 0).sum())
+    rec["manual_seed" if channel == 0 else "manual_seed_person"] = [dict(frame=int(f), box=[int(v) for v in b]) for f, b in seeds]
     (STATE / f"ep{ep:06d}.done").write_text(json.dumps(rec))
-    return dict(ep=ep, seeds=[int(f) for f, _ in seeds], obj_px_median=rec["obj_px_median"],
-                obj_lost_frames=rec["obj_lost_frames"])
+    return dict(ep=ep, channel=channel, seeds=[int(f) for f, _ in seeds], px_median=rec[f"{k}_px_median"],
+                lost_frames=rec[f"{k}_lost_frames"])
 
 
 if __name__ == "__main__":
@@ -68,6 +69,7 @@ if __name__ == "__main__":
     ap.add_argument("--seed", action="append", required=True, metavar="FRAME,X0,Y0,X1,Y1",
                     help="repeatable: one seed per occlusion-free view of the object")
     ap.add_argument("--device")
+    ap.add_argument("--channel", type=int, default=0, help="0 object (default), 1 person")
     a = ap.parse_args()
     seeds = []
     for spec in a.seed:
@@ -75,4 +77,4 @@ if __name__ == "__main__":
         if len(v) != 5:
             raise SystemExit(f"--seed needs FRAME,X0,Y0,X1,Y1, got {spec!r}")
         seeds.append((v[0], np.array(v[1:], float)))
-    print(json.dumps(propagate(a.ep, seeds, a.device or pick_gpu())))
+    print(json.dumps(propagate(a.ep, seeds, a.device or pick_gpu(), a.channel)))

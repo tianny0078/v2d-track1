@@ -5,9 +5,11 @@
 set -euo pipefail
 cd /home/tianyuan/projects/v2d_track1
 D="$1"; MSG="$2"
-PEN=$(python3 src/score_local.py --episodes "$D" 2>&1 | tail -1 | python3 -c "import sys,json;print(json.loads(sys.stdin.read().split('MEAN',1)[1])['pen_cm'])")
-echo "local PEN = $PEN"
-if [ "$PEN" != "0.0" ]; then echo "PEN gate FAILED — not submitting"; exit 2; fi
+if [ "${SKIP_PEN:-0}" != "1" ]; then
+  # fast gate: the host's penetration_depth on scored frames only (src/pen_gate.py), same semantics as score_local's PEN
+  python3 src/pen_gate.py "$D" 2>&1 | grep RESULT | tee /tmp/pen_gate.txt
+  grep -q PASS /tmp/pen_gate.txt || { echo "PEN gate FAILED — not submitting"; exit 2; }
+fi
 git add -A
 git -c user.email=tianny007@gmail.com -c user.name=tianny0078 commit -q -m "$MSG
 

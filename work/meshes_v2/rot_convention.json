@@ -1,0 +1,112 @@
+{
+ "big_red_bowl": {
+  "xyzw": 0.958,
+  "xyzw\u00b7flip": 0.951,
+  "xyzw^T": 0.942,
+  "xyzw^T\u00b7flip": 0.942,
+  "wxyz": 0.946,
+  "wxyz\u00b7flip": 0.952,
+  "wxyz^T": 0.945,
+  "wxyz^T\u00b7flip": 0.952,
+  "identity": 0.947
+ },
+ "black_pan": {
+  "xyzw": 0.688,
+  "xyzw\u00b7flip": 0.649,
+  "xyzw^T": 0.685,
+  "xyzw^T\u00b7flip": 0.658,
+  "wxyz": 0.782,
+  "wxyz\u00b7flip": 0.733,
+  "wxyz^T": 0.783,
+  "wxyz^T\u00b7flip": 0.734,
+  "identity": 0.711
+ },
+ "foam_grass_block": {
+  "xyzw": 0.911,
+  "xyzw\u00b7flip": 0.904,
+  "xyzw^T": 0.752,
+  "xyzw^T\u00b7flip": 0.75,
+  "wxyz": 0.655,
+  "wxyz\u00b7flip": 0.653,
+  "wxyz^T": 0.854,
+  "wxyz^T\u00b7flip": 0.854,
+  "identity": 0.678
+ },
+ "hula_hoop": {
+  "xyzw": 0.04,
+  "xyzw\u00b7flip": 0.038,
+  "xyzw^T": 0.04,
+  "xyzw^T\u00b7flip": 0.042,
+  "wxyz": 0.074,
+  "wxyz\u00b7flip": 0.349,
+  "wxyz^T": 0.257,
+  "wxyz^T\u00b7flip": 0.061,
+  "identity": 0.108
+ },
+ "iron": {
+  "xyzw": 0.376,
+  "xyzw\u00b7flip": 0.377,
+  "xyzw^T": 0.564,
+  "xyzw^T\u00b7flip": 0.502,
+  "wxyz": 0.588,
+  "wxyz\u00b7flip": 0.572,
+  "wxyz^T": 0.817,
+  "wxyz^T\u00b7flip": 0.911,
+  "identity": 0.539
+ },
+ "paint_roller": {
+  "xyzw": 0.368,
+  "xyzw\u00b7flip": 0.391,
+  "xyzw^T": 0.432,
+  "xyzw^T\u00b7flip": 0.417,
+  "wxyz": 0.893,
+  "wxyz\u00b7flip": 0.89,
+  "wxyz^T": 0.845,
+  "wxyz^T\u00b7flip": 0.852,
+  "identity": 0.193
+ },
+ "pink_foam_roll": {
+  "xyzw": 0.218,
+  "xyzw\u00b7flip": 0.22,
+  "xyzw^T": 0.41,
+  "xyzw^T\u00b7flip": 0.46,
+  "wxyz": 0.499,
+  "wxyz\u00b7flip": 0.531,
+  "wxyz^T": 0.64,
+  "wxyz^T\u00b7flip": 0.643,
+  "identity": 0.072
+ },
+ "short_wood_stool": {
+  "xyzw": 0.576,
+  "xyzw\u00b7flip": 0.68,
+  "xyzw^T": 0.644,
+  "xyzw^T\u00b7flip": 0.612,
+  "wxyz": 0.542,
+  "wxyz\u00b7flip": 0.505,
+  "wxyz^T": 0.583,
+  "wxyz^T\u00b7flip": 0.472,
+  "identity": 0.595
+ },
+ "white_desk": {
+  "xyzw": 0.283,
+  "xyzw\u00b7flip": 0.309,
+  "xyzw^T": 0.25,
+  "xyzw^T\u00b7flip": 0.158,
+  "wxyz": 0.394,
+  "wxyz\u00b7flip": 0.415,
+  "wxyz^T": 0.381,
+  "wxyz^T\u00b7flip": 0.336,
+  "identity": 0.179
+ },
+ "white_laptop_cart": {
+  "xyzw": 0.235,
+  "xyzw\u00b7flip": 0.364,
+  "xyzw^T": 0.193,
+  "xyzw^T\u00b7flip": 0.292,
+  "wxyz": 0.341,
+  "wxyz\u00b7flip": 0.286,
+  "wxyz^T": 0.355,
+  "wxyz^T\u00b7flip": 0.313,
+  "identity": 0.089
+ }
+}
