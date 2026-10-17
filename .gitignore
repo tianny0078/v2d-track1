@@ -11,3 +11,8 @@ web/assets/
 web/status.json
 __pycache__/
 *.pyc
+work/sam3dbody_code/
+work/v2d_latest/
+work/sam3d/
+work/sub_*/
+work/*kaggle-receipt.json

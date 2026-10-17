@@ -23,6 +23,44 @@ from src.fit_mhr import FOOT_JOINTS, POSE_UNIT_M, POSE_SIGN  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _euler_to_mat(e):
+    """Host's euler-xyz convention (metric_code/track_1/*.py::_euler_xyz_to_mat), transcribed."""
+    cx, cy, cz = np.cos(e[..., 0]), np.cos(e[..., 1]), np.cos(e[..., 2])
+    sx, sy, sz = np.sin(e[..., 0]), np.sin(e[..., 1]), np.sin(e[..., 2])
+    return np.stack([np.stack([cy * cz, -cx * sz + sx * sy * cz, sx * sz + cx * sy * cz], -1),
+                     np.stack([cy * sz, cx * cz + sx * sy * sz, -sx * cz + cx * sy * sz], -1),
+                     np.stack([-sy, sx * cy, cx * cy], -1)], -2)
+
+
+def _mat_to_euler(R):
+    y = np.arcsin(np.clip(-R[..., 2, 0], -1, 1))
+    return np.stack([np.arctan2(R[..., 2, 1], R[..., 2, 2]), y,
+                     np.arctan2(R[..., 1, 0], R[..., 0, 0])], -1)
+
+
+def _smooth_wrap_safe(seg: np.ndarray, sigma: float) -> np.ndarray:
+    """Gaussian-smooth a pose stretch WITHOUT blending the root rotation across the +-pi wrap.
+
+    pose[3:6] is the root rotation as euler xyz. A subject who turns around (ep26/ep18: sit on
+    the stool and rotate) sweeps yaw through +-pi; the raw sequence then jumps by 2*pi on two
+    channels (ep26: 20 such frames). A plain Gaussian interpolates across that discontinuity and
+    manufactures a half-turn -- measured: ep26's joint acceleration went 1.65 -> 9.58 cm/frame^2
+    AFTER smoothing, and the leaderboard ACC-H came back 1.103 against a predicted ~0.12.
+    Smoothing the first two columns of the rotation matrix (a 6D representation with no wrap),
+    re-orthonormalising and converting back fixes it: ep26 -> 0.116 at sigma 3.
+    Translation and the 130 body-pose params are small-angle and get the plain Gaussian.
+    """
+    from scipy.ndimage import gaussian_filter1d
+    out = gaussian_filter1d(seg, sigma, axis=0, mode="nearest")
+    R = _euler_to_mat(seg[:, 3:6])
+    c = gaussian_filter1d(R[..., :2], sigma, axis=0, mode="nearest")
+    a = c[..., 0] / np.linalg.norm(c[..., 0], axis=-1, keepdims=True)
+    b = c[..., 1] - (a * c[..., 1]).sum(-1, keepdims=True) * a
+    b = b / np.linalg.norm(b, axis=-1, keepdims=True)
+    out[:, 3:6] = _mat_to_euler(np.stack([a, b, np.cross(a, b)], -1))
+    return out
+
+
 def _sam3d_as_body(path: Path) -> dict:
     """SAM 3D Body per-frame output -> the same dict layout the fitter writes."""
     from src.fit_mhr import POSE_UNIT_M, POSE_SIGN
@@ -92,7 +130,7 @@ def main() -> None:
             # would drag the two sides of a 360-frame gap together
             for sl in stretches(fids):
                 if sl.stop - sl.start >= 3:
-                    pose_s[sl] = gaussian_filter1d(pose_s[sl], a.smooth, axis=0, mode="nearest")
+                    pose_s[sl] = _smooth_wrap_safe(pose_s[sl], a.smooth)
             if a.reground:
                 from src.mhr_local import MHR
                 global _MHR
