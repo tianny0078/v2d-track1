@@ -101,7 +101,7 @@ class Fitter:
     def fit(self, kp: np.ndarray, K: dict, iters=(250, 400), lr=(0.05, 0.02),
             w_smooth=2.0, w_reg=1e-3, w_jacc=0.0, stretch_slices=None,
             ground=None, w_ground=0.0, w_upright=0.0, sil=None, w_sil=0.0, sil_batch=16,
-            lr_identity=1e-3, identity_clamp=2.0, verbose=True) -> dict:
+            lr_identity=1e-3, identity_clamp=2.0, init=None, w_init=0.0, verbose=True) -> dict:
         """lr_identity / identity_clamp: shape and scales get their own, much smaller, Adam step.
         Measured on the silhouette term alone: at lr 0.02 shape marched to |shape| 13 and the
         loss being optimised got WORSE; at pose lr 5e-3 / identity lr 1e-3 it improved
@@ -141,12 +141,21 @@ class Fitter:
         pose[:, 0] = (X - PELVIS_REST[0]) / (POSE_SIGN[0] * POSE_UNIT_M)
         pose[:, 1] = (Y - PELVIS_REST[1]) / (POSE_SIGN[1] * POSE_UNIT_M)
         pose[:, 2] = (z0 - PELVIS_REST[2]) / (POSE_SIGN[2] * POSE_UNIT_M)
-        pose.requires_grad_(True)
-        scales = torch.zeros(68, device=self.dev, requires_grad=True)
-        shape = torch.zeros(45, device=self.dev, requires_grad=True)
+        scales = torch.zeros(68, device=self.dev)
+        shape = torch.zeros(45, device=self.dev)
+        if init is not None:
+            # SAM 3D Body gives a learned 3D prior (depth, identity); the keypoints then pull the
+            # 2D down from 4-9 px to ~2 px while the prior holds what keypoints cannot see.
+            pose = torch.tensor(init["pose"], dtype=torch.float32, device=self.dev)
+            scales = torch.tensor(init["scales"], dtype=torch.float32, device=self.dev)
+            shape = torch.tensor(init["shape"], dtype=torch.float32, device=self.dev)
+            pose0 = pose.clone(); scales0 = scales.clone(); shape0 = shape.clone()
+        pose.requires_grad_(True); scales.requires_grad_(True); shape.requires_grad_(True)
 
         hist = []
         for stage, (n, lr_s) in enumerate(zip(iters, lr)):
+            if stage == 0 and init is not None:
+                continue      # the init already places the body; stage 0 would discard it
             if stage == 0:   # global placement only: root translation and root rotation
                 params = [pose]
                 mask = torch.zeros(136, device=self.dev); mask[:6] = 1.0
@@ -180,6 +189,10 @@ class Fitter:
                             loss = loss + w_jacc * ja.norm(dim=-1).mean()
                     loss = loss + w_reg * (shape.pow(2).sum() + scales.pow(2).sum()
                                            + pose[:, 6:].pow(2).mean())
+                    if init is not None and w_init > 0:
+                        loss = loss + w_init * ((pose - pose0).pow(2).mean()
+                                                + (scales - scales0).pow(2).mean()
+                                                + (shape - shape0).pow(2).mean())
                 if ground is not None and (w_ground > 0 or w_upright > 0):
                     gn = torch.tensor(ground["normal"], dtype=torch.float32, device=self.dev)
                     # SCALE-FREE form. Pinning the feet to the floor's measured DISTANCE mixes two
@@ -249,6 +262,10 @@ def main() -> None:
                          "floor and reprojection is 1.20 px; at 1.0 they are on it (0.55 cm) for "
                          "2.99 px; at 50 reprojection collapses to 11 px for no further gain.")
     ap.add_argument("--w-upright", type=float, default=0.1)
+    ap.add_argument("--init-sam3d", action="store_true",
+                    help="start from work/sam3d/epNNNNNN.npz and keep a prior toward it "
+                         "(w_init); skips the keypoint-only global placement stage")
+    ap.add_argument("--w-init", type=float, default=1.0)
     a = ap.parse_args()
     dev = a.device or pick_gpu(16000)
     K_all = json.load((ROOT / "work/camera/intrinsics.json").open())
@@ -265,8 +282,16 @@ def main() -> None:
         z = np.load(ROOT / f"work/kp2d/ep{ep:06d}.npz")
         t0 = time.time()
         cam = meta[ep]["camera"]
+        init = None
+        if a.init_sam3d:
+            from src.export_episodes import _sam3d_as_body
+            init = _sam3d_as_body(ROOT / f"work/sam3d/ep{ep:06d}.npz")
         r = f.fit(z["kp"], K_all[cam], stretch_slices=list(stretches(z["frame_ids"])),
-                  ground=G_all[cam], w_ground=a.w_ground, w_upright=a.w_upright)
+                  ground=G_all[cam], w_ground=a.w_ground, w_upright=a.w_upright,
+                  init=init, w_init=a.w_init if init is not None else 0.0,
+                  w_reg=0.0 if init is not None else 1e-3,
+                  iters=(0, 150) if init is not None else (250, 400),
+                  lr=(0.05, 3e-3) if init is not None else (0.05, 0.02))
         np.savez_compressed(out_dir / f"ep{ep:06d}.npz", pose=r["pose"], scales=r["scales"],
                             shape=r["shape"], frame_ids=z["frame_ids"])
         rec = dict(ep=ep, frames=len(z["kp"]), px_err=round(r["px_err"], 2),

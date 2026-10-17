@@ -1,10 +1,10 @@
 {
- "fetched_at": "2026-10-17T00:38:08+00:00",
+ "fetched_at": "2026-10-17T06:33:41+00:00",
  "metrics": {
   "CD-H": {
-   "teams": 26,
+   "teams": 27,
    "rank": 22,
-   "score": 21.38935,
+   "score": 17.86488,
    "best": 13.43306,
    "third": 14.20399,
    "median": 15.44549,
@@ -33,13 +33,13 @@
    ]
   },
   "CD-O": {
-   "teams": 26,
-   "rank": 23,
+   "teams": 27,
+   "rank": 24,
    "score": 145.40682,
    "best": 17.91571,
    "third": 19.1004,
    "median": 31.40578,
-   "worst": 525.36396,
+   "worst": 422.2238,
    "top": [
     {
      "team": "EviisKitson",
@@ -64,12 +64,12 @@
    ]
   },
   "ACC-H": {
-   "teams": 26,
+   "teams": 27,
    "rank": 7,
    "score": 0.14528,
    "best": 0.13738,
    "third": 0.13826,
-   "median": 0.17835,
+   "median": 0.17446,
    "worst": 2.49281,
    "top": [
     {
@@ -95,13 +95,13 @@
    ]
   },
   "ACC-O": {
-   "teams": 26,
+   "teams": 27,
    "rank": 5,
    "score": 0.07429,
    "best": 0.07111,
    "third": 0.07288,
    "median": 0.18698,
-   "worst": 12.96689,
+   "worst": 4.1295,
    "top": [
     {
      "team": "RobotPI Lab",
@@ -126,12 +126,12 @@
    ]
   },
   "PEN": {
-   "teams": 26,
+   "teams": 27,
    "rank": 2,
    "score": 0.0,
    "best": 0.0,
    "third": 0.0,
-   "median": 0.00213,
+   "median": 0.00204,
    "worst": 0.1007,
    "top": [
     {
@@ -157,5 +157,5 @@
    ]
   }
  },
- "rank_sum": 59
+ "rank_sum": 60
 }
