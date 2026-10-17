@@ -23,7 +23,8 @@ STAGES = [
     ("frames",     "抽帧 / 评分窗口缓存", lambda: _count("frames"), 30),
     ("seg",        "人+物分割",          lambda: _count("seg"), 30),
     ("kp2d",       "2D 关键点 (VitPose)", lambda: _count("kp2d"), 30),
-    ("body",       "SAM 3D Body → MHR",  lambda: _count("body"), 30),
+    ("body",       "MHR 关键点拟合",       lambda: _count("body"), 30),
+    ("body_sam3d", "SAM 3D Body → MHR",  lambda: _count("body_sam3d"), 30),
     ("objmesh",    "物体网格 (10 物体)",  lambda: _count("objmesh"), 10),
     ("objpose",    "物体 6D 跟踪",        lambda: _count("objpose"), 30),
     ("joint",      "联合优化 + 接触/穿透", lambda: _count("joint"), 30),
@@ -204,7 +205,7 @@ def episodes() -> list[dict]:
     lens = {json.loads(l)["episode_index"]: json.loads(l) for l in eps_f.open()} if eps_f.exists() else {}
     scored = json.load(scored_f.open()) if scored_f.exists() else {}
     stage_names = [s[0] for s in STAGES if s[0] in
-                   ("frames", "seg", "kp2d", "body", "objpose", "joint", "pack")]
+                   ("frames", "seg", "kp2d", "body", "body_sam3d", "objpose", "joint", "pack")]
     out = []
     for i in sorted(meta):
         s = scored.get(str(i), {})

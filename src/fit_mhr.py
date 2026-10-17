@@ -100,7 +100,13 @@ class Fitter:
 
     def fit(self, kp: np.ndarray, K: dict, iters=(250, 400), lr=(0.05, 0.02),
             w_smooth=2.0, w_reg=1e-3, w_jacc=0.0, stretch_slices=None,
-            ground=None, w_ground=0.0, w_upright=0.0, verbose=True) -> dict:
+            ground=None, w_ground=0.0, w_upright=0.0, sil=None, w_sil=0.0, sil_batch=16,
+            lr_identity=1e-3, identity_clamp=2.0, verbose=True) -> dict:
+        """lr_identity / identity_clamp: shape and scales get their own, much smaller, Adam step.
+        Measured on the silhouette term alone: at lr 0.02 shape marched to |shape| 13 and the
+        loss being optimised got WORSE; at pose lr 5e-3 / identity lr 1e-3 it improved
+        (dt_loss 0.097 -> 0.066). Under a keypoint-only loss shape had ~zero gradient so this
+        never showed; the silhouette is the first term that actually moves it."""
         """w_jacc penalises the scored joints' own second difference, in cm -- the quantity
         ACC-H measures. Target: the reference's own |a_gt| = 0.1453 cm/frame^2, which a fully
         static prediction already achieves, so there is never a reason to land above it."""
@@ -149,7 +155,11 @@ class Fitter:
                 params = [pose, scales, shape]
                 mask = torch.ones(136, device=self.dev)
                 sel = list(range(len(self.coco)))
-            opt = torch.optim.Adam(params, lr=lr_s)
+            if stage == 0:
+                opt = torch.optim.Adam(params, lr=lr_s)
+            else:
+                opt = torch.optim.Adam([{"params": [pose], "lr": lr_s},
+                                        {"params": [scales, shape], "lr": lr_identity}])
             for it in range(n):
                 opt.zero_grad(set_to_none=True)
                 j3, acc_j, jm = self.forward(pose, scales, shape)
@@ -196,10 +206,25 @@ class Fitter:
                         up = jm[:, NECK_J] - jm[:, PELVIS_J]
                         up = up / up.norm(dim=-1, keepdim=True).clamp(min=1e-6)
                         loss = loss + w_upright * (1.0 - (up * gn).sum(-1)).pow(2).mean()
+                if sil is not None and w_sil > 0 and stage > 0:
+                    # separate small forward for a random subset: keeping the full-episode vertex
+                    # graph alive would cost ~180 MB per 800 frames plus autograd, and the subset
+                    # still reaches every frame over a few hundred iterations
+                    k = min(sil_batch, T)
+                    idx = torch.randperm(T, device=self.dev)[:k]
+                    pp = torch.cat([pose[idx], scales.expand(k, 68)], 1)
+                    vv, _ = self.m(shape.expand(k, 45), pp, torch.zeros(k, 72, device=self.dev))
+                    vv = vv / 100.0 * self.flip
+                    loss = loss + w_sil * (sil.loss(vv, idx, K) if hasattr(sil, "dt")
+                                           else sil.loss(vv, idx))
                 loss.backward()
                 if stage == 0:
                     pose.grad.mul_(mask)
                 opt.step()
+                if stage > 0 and identity_clamp:
+                    with torch.no_grad():
+                        shape.clamp_(-identity_clamp, identity_clamp)
+                        scales.clamp_(-identity_clamp, identity_clamp)
                 if verbose and it % max(1, n // 3) == 0:
                     hist.append((stage, it, float(data), float(loss)))
         with torch.no_grad():

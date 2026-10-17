@@ -23,12 +23,38 @@ from src.fit_mhr import FOOT_JOINTS, POSE_UNIT_M, POSE_SIGN  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _sam3d_as_body(path: Path) -> dict:
+    """SAM 3D Body per-frame output -> the same dict layout the fitter writes."""
+    from src.fit_mhr import POSE_UNIT_M, POSE_SIGN
+    z = np.load(path)
+    ok = z["ok"]
+    if not ok.any():
+        raise SystemExit(f"{path}: SAM 3D Body produced no frames")
+    mp, ct = z["model_params"].copy(), z["cam_t"]
+    # frames SAM3D missed: borrow the nearest good frame so the sequence is dense
+    good = np.where(ok)[0]
+    near = good[np.abs(good[None, :] - np.arange(len(ok))[:, None]).argmin(1)]
+    mp, ct = mp[near], ct[near]
+    pose = mp[:, :136].astype(np.float32)
+    pose[:, :3] = (ct * (10.0 / (POSE_UNIT_M * 10.0)) * np.array(POSE_SIGN, np.float32)).astype(np.float32)
+    scales = np.median(mp[good, 136:], axis=0).astype(np.float32)
+    shape = np.median(z["shape"][good], axis=0).astype(np.float32)
+    return dict(frame_ids=z["frame_ids"], pose=pose, scales=scales, shape=shape)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--object", choices=["none", "mesh"], default="mesh",
                     help="'none' keeps the unit-box placeholder; 'mesh' uses the reconstructed mesh")
     ap.add_argument("--body", type=Path, default=ROOT / "work/body")
+    ap.add_argument("--body-source", choices=["fit", "sam3d"], default="fit",
+                    help="'sam3d' reads work/sam3d/epNNNNNN.npz (SAM 3D Body per-frame output) and "
+                         "builds pose from model_params[:136] with pose[0:3] taken from pred_cam_t "
+                         "(verified in our camera frame by reprojection: 20 px from the VitPose "
+                         "centroid; every flipped hypothesis was 485 px off or behind the camera). "
+                         "shape and scales are the per-episode MEDIAN over good frames, because "
+                         "the submission requires one identity per episode.")
     ap.add_argument("--reground", action="store_true",
                     help="After smoothing, slide each frame along the floor normal so the lowest "
                          "foot returns to the floor. Smoothing the pose averages the feet off the "
@@ -55,7 +81,10 @@ def main() -> None:
     report = []
     for ep in range(30):
         T = max(eps_len[ep], scored[str(ep)]["last"] + 1)
-        b = np.load(a.body / f"ep{ep:06d}.npz")
+        if a.body_source == "sam3d":
+            b = _sam3d_as_body(ROOT / f"work/sam3d/ep{ep:06d}.npz")
+        else:
+            b = np.load(a.body / f"ep{ep:06d}.npz")
         fids, pose_s = b["frame_ids"], b["pose"].copy()
         if a.smooth > 0:
             from scipy.ndimage import gaussian_filter1d

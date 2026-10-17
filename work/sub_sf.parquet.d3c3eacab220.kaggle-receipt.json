@@ -1,0 +1,52 @@
+{
+  "track": "track_1",
+  "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+  "message": "Scale-free ground constraint + upright sign fix",
+  "submissions": {
+    "cd_h_cm": {
+      "slug": "v2d-challenge-track1-cd-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-H (cm)",
+      "ref": 57282656,
+      "public_score": "76.50905",
+      "error": ""
+    },
+    "cd_o_cm": {
+      "slug": "v2d-challenge-track1-cd-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - CD-O (cm)",
+      "ref": 57282658,
+      "public_score": "570.93860",
+      "error": ""
+    },
+    "acc_h_cm": {
+      "slug": "v2d-challenge-track1-acc-h",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-H (cm)",
+      "ref": 57282659,
+      "public_score": "0.25563",
+      "error": ""
+    },
+    "acc_o_cm": {
+      "slug": "v2d-challenge-track1-acc-o",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - ACC-O (cm)",
+      "ref": 57282660,
+      "public_score": "0.07429",
+      "error": ""
+    },
+    "interpenetration_cm": {
+      "slug": "v2d-challenge-track1-pen",
+      "state": "COMPLETE",
+      "file": "/home/tianyuan/projects/v2d_track1/work/sub_sf.parquet",
+      "message": "Successfully submitted to Track 1 - Reconstruction - PEN (cm)",
+      "ref": 57282661,
+      "public_score": "0.00000",
+      "error": ""
+    }
+  }
+}
