@@ -29,6 +29,8 @@ STAGES = [
     ("flow_fit",   "FlowHMR → MHR 拟合",  lambda: len(list((ROOT / "work/body_flow").glob("ep*.npz"))), 30),
     ("objmesh",    "物体网格 (10 物体)",  lambda: _count("objmesh"), 10),
     ("objdepth",   "MoGe 物体深度比",     lambda: _count("objdepth"), 30),
+    ("moge_pts",   "MoGe 人体点云",       lambda: _count("moge_pts"), 30),
+    ("body_depth", "深度 ICP 身体精修",    lambda: len(list((ROOT / "work/body_depth").glob("ep*.npz"))), 30),
     ("objdet",     "物体检测 (每集 mesh+R)", lambda: _count("objdet"), 30),
     ("objtrack",   "物体朝向逐帧跟踪",     lambda: len(list((STATE / "objtrack").glob("ep??????.done"))), 30),
     ("objpose",    "物体 6D 跟踪",        lambda: _count("objpose"), 30),

@@ -9,6 +9,7 @@ Object pose is optional: with --object none the object keeps the format-floor pl
 is what isolates a human-only change on the leaderboard.
 """
 from __future__ import annotations
+import os
 import argparse, json
 from pathlib import Path
 import numpy as np
@@ -118,6 +119,9 @@ OBJ_DEPTH_COL = 0
 THIN_FILL = 0.2
 CONTACT_ANCHOR = False
 PUSH_MODE = "centroid"
+OBJ_SIZE = "consensus"
+OBJ_NAME = ""
+PUSH_ROUNDS = 4
 
 
 def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=None):
@@ -221,6 +225,25 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=N
         zf[sl] = _g(seg, 6.0, mode="nearest") if len(seg) >= 3 else seg
     zh = np.where(np.isnan(zf), zh_hand, np.clip(zf, zh_hand - 1.5, zh_hand + 1.5))
     zh = np.clip(zh, 0.5, 12.0)
+    if OBJ_SIZE == "moge" and OBJ_DEPTH == "moge":
+        # METRIC SIZE FROM THE PLACEMENT DEPTH: S = ext_px * z / f on the least-occluded frames
+        # (mask area >= 70% of the episode max). The hand-depth consensus was 10-20% off on
+        # the desk (1.18 vs 1.35), stool (0.73 vs 0.64), paint roller (0.27 vs 0.19); this makes
+        # the projected object match the mask at the depth we actually place it.
+        area_ = np.array([np.count_nonzero(np.unpackbits(packed[i], axis=-1)[0, :, :W]) for i in mi])
+        good_ = ok & np.isfinite(zh) & (area_ >= 0.7 * area_.max())
+        sz_file = ROOT / "work/object_size_moge.json"
+        per_obj = json.load(sz_file.open())["size_m"] if sz_file.exists() else {}
+        if OBJ_NAME in per_obj:
+            # per-OBJECT median over its three episodes (the pan's per-episode estimates were
+            # 0.19/0.19/0.28 -- the handle comes and goes -- so the single-episode value is noisy)
+            S_new = float(per_obj[OBJ_NAME])
+            print(f"  ep{ep} object size: consensus {S:.2f} m -> moge-depth per-object {S_new:.2f} m")
+            S = S_new
+        elif good_.sum() >= 5:
+            S_new = float(np.median(ext[good_] * zh[good_] / K["fx"]))
+            print(f"  ep{ep} object size: consensus {S:.2f} m -> moge-depth {S_new:.2f} m ({good_.sum()} frames)")
+            S = S_new
     # the clamp is applied AFTER the smoothing and re-introduces kinks where it engages (place7
     # ep18: z-dominated spikes on three consecutive frames with a stable mask). Smooth once more
     # after clamping so the trajectory the scorer differences is C1 everywhere.
@@ -271,7 +294,10 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=N
     import tempfile, trimesh as _tm
     with tempfile.NamedTemporaryFile(suffix=".obj", delete=False) as _f:
         mesh.export(_f.name)
+    try:
         mv, mf = budget_mesh(_f.name, 4096, 4096)
+    finally:
+        os.unlink(_f.name)                                                   # was leaking 8-57 MB per call into /tmp
     mv = np.asarray(mv, np.float64); mf = np.asarray(mf, np.int64)
     mf = mf[(mf[:, 0] != mf[:, 1]) | (mf[:, 1] != mf[:, 2])]        # drop zero-area padding faces
     hand_c = hands[np.arange(len(fr)), near]                                 # nearest hand, [N,3]
@@ -283,11 +309,14 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=N
         # surface point) direction by the max depth, iterate until clear.
         pq = _tm.proximity.ProximityQuery(_tm.Trimesh(mv, mf, process=False))
 
-        def _escape(t, t3t):
+        sub = np.random.RandomState(0).choice(hand_pts.shape[1], min(300, hand_pts.shape[1]), replace=False)
+
+        def _escape(t, t3t, pts=None):
             """world-space push vector (m) that clears the hand at frame t from translation t3t."""
+            P_ = hand_pts if pts is None else hand_pts[:, pts]
             total = np.zeros(3)
             for _ in range(8):
-                local = ((hand_pts[t] - (t3t + total)) @ Rf[t]) / float(obj_s)
+                local = ((P_[t] - (t3t + total)) @ Rf[t]) / float(obj_s)
                 depth = penetration_depth(local, mv, mf)
                 if depth.max() <= 0.0:
                     return total, True
@@ -300,23 +329,33 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=N
                 total = total + dvec * (depth.max() * float(obj_s) + 0.01)
             return total, False
 
-        pv = np.zeros((len(fr), 3), np.float32)
-        for t in range(len(fr)):
-            pv[t], _ = _escape(t, t3[t])
-        mag = np.linalg.norm(pv, axis=1)
-        # envelope on the magnitude (dilate + smooth + margin), smoothed direction
         from scipy.ndimage import maximum_filter1d
-        dirs = np.zeros_like(pv); push_s = np.zeros(len(fr), np.float32)
-        for sl in stretches(fr):
-            if sl.stop - sl.start >= 3:
-                push_s[sl] = gaussian_filter1d(maximum_filter1d(mag[sl], size=25, mode="nearest"), 6.0, mode="nearest") + 0.01
-                dsm = gaussian_filter1d(pv[sl], 6.0, axis=0, mode="nearest")
-                nrm = np.linalg.norm(dsm, axis=1, keepdims=True)
-                dirs[sl] = np.where(nrm > 1e-6, dsm / np.maximum(nrm, 1e-6), 0.0)
-            else:
-                push_s[sl] = mag[sl]; dirs[sl] = pv[sl] / np.maximum(mag[sl][:, None], 1e-9)
-        push_s = np.where(mag > 0, push_s, np.where(push_s > 0.03, push_s, 0.0))   # frames never inside: no push unless a neighbour needs it
-        t3 = t3 + push_s[:, None] * dirs
+        # SMOOTH rounds: per-frame escape vectors -> magnitude envelope (dilate + smooth + margin)
+        # along the smoothed direction, applied; repeat while penetration remains. One round left
+        # 40-70% of frames to the per-frame residual (<= 9 cm single-frame steps, |a| 3-5 on the
+        # test episodes) because the escape direction turns as the hand moves round the object.
+        push_s = np.zeros(len(fr), np.float32); mag0 = None
+        # coarse-to-fine rounds (dilation window, direction sigma); a 300-point hand subsample
+        # keeps the rounds affordable, the final per-frame residual uses every hand vertex
+        for rnd, (win, dsig) in enumerate(((25, 6.0), (15, 4.0), (9, 2.0), (5, 1.0))[:PUSH_ROUNDS]):
+            pv = np.zeros((len(fr), 3), np.float32)
+            for t in range(len(fr)):
+                pv[t], _ = _escape(t, t3[t], sub)
+            mag = np.linalg.norm(pv, axis=1)
+            if mag0 is None: mag0 = mag.copy()
+            if mag.max() <= 0.0:
+                break
+            dirs = np.zeros_like(pv); env = np.zeros(len(fr), np.float32)
+            for sl in stretches(fr):
+                if sl.stop - sl.start >= 3:
+                    env[sl] = gaussian_filter1d(maximum_filter1d(mag[sl], size=win, mode="nearest"), dsig, mode="nearest") + 0.01
+                    dsm = gaussian_filter1d(pv[sl], dsig, axis=0, mode="nearest")
+                    nrm = np.linalg.norm(dsm, axis=1, keepdims=True)
+                    dirs[sl] = np.where(nrm > 1e-6, dsm / np.maximum(nrm, 1e-6), 0.0)
+                else:
+                    env[sl] = mag[sl]; dirs[sl] = pv[sl] / np.maximum(mag[sl][:, None], 1e-9)
+            t3 = t3 + env[:, None] * dirs; push_s = push_s + env
+        mag = mag0
         # per-frame residual, minimal escape again (small by construction)
         resid = np.zeros(len(fr), np.float32)
         for t in range(len(fr)):
@@ -480,6 +519,7 @@ def main() -> None:
     ap.add_argument("--obj-depth-stat", choices=["median", "p20"], default="p20")
     ap.add_argument("--mesh-dir", default="work/meshes", help="work/meshes_v2 has the re-run meshes with layout poses")
     ap.add_argument("--obj-rot", choices=["identity", "layout", "track"], default="identity")
+    ap.add_argument("--obj-size", choices=["consensus", "moge"], default="consensus", help="object metric size: 3-episode hand-depth consensus or from the MoGe placement depth")
     ap.add_argument("--push", choices=["centroid", "closest"], default="centroid", help="push-out direction: hand->centroid (old) or minimal escape to the closest surface")
     ap.add_argument("--contact-anchor", action="store_true", help="shift MoGe depth so contact frames put the object at the hand")
     ap.add_argument("--rot-tag", default="", help="suffix of the tracked rotation file (e.g. _ss)")
@@ -493,8 +533,8 @@ def main() -> None:
                          "filtering beats in-loop penalties here, which saturate: w_jacc=5 left "
                          "|a_pred| at 2.8x while driving reprojection error to 66 px.")
     a = ap.parse_args()
-    global OBJ_DEPTH, OBJ_DEPTH_COL, CONTACT_ANCHOR, PUSH_MODE
-    OBJ_DEPTH = a.obj_depth; OBJ_DEPTH_COL = 0 if a.obj_depth_stat == "median" else 1; CONTACT_ANCHOR = a.contact_anchor; PUSH_MODE = a.push
+    global OBJ_DEPTH, OBJ_DEPTH_COL, CONTACT_ANCHOR, PUSH_MODE, OBJ_SIZE
+    OBJ_DEPTH = a.obj_depth; OBJ_DEPTH_COL = 0 if a.obj_depth_stat == "median" else 1; CONTACT_ANCHOR = a.contact_anchor; PUSH_MODE = a.push; OBJ_SIZE = a.obj_size
     a.out.mkdir(parents=True, exist_ok=True)
 
     eps_len = {json.loads(l)["episode_index"]: json.loads(l)["length"]
@@ -593,14 +633,24 @@ def main() -> None:
             import tempfile
             with tempfile.NamedTemporaryFile(suffix=".obj", delete=False) as _f:
                 mesh.export(_f.name)
+            try:
                 bv, bf = budget_mesh(_f.name, 4096, 4096)
+            finally:
+                os.unlink(_f.name)                                           # was leaking 8-57 MB per call into /tmp
             bf = np.asarray(bf, np.int64); bf = bf[(bf[:, 0] != bf[:, 1]) | (bf[:, 1] != bf[:, 2])]
             mesh = trimesh.Trimesh(np.asarray(bv, np.float64), bf, process=False)
+        # CENTRE the submitted mesh on its vertex mean: object_translation is then the centroid
+        # itself and a per-frame rotation (track) turns the object about its centroid instead of
+        # about the canonical origin, so rotation jitter no longer moves the centroid (ACC-O went
+        # 0.074 -> 0.134 on submission #9 with tracked rotations).
+        mesh = trimesh.Trimesh(np.asarray(mesh.vertices) - np.asarray(mesh.vertices).mean(0), np.asarray(mesh.faces), process=False)
         mesh.export(a.out / f"episode_{ep:06d}_object.obj")
 
         obj_R = np.tile(np.eye(3, dtype=np.float32), (T, 1, 1))
         obj_t = np.zeros((T, 3), np.float32); obj_s = np.float32(1.0)
         if a.object == "place":
+            global OBJ_NAME
+            OBJ_NAME = meta[ep]["object"]
             obj_t, obj_s = _place_object(ep, meta[ep]["camera"], pose, b["scales"], b["shape"],
                                          fids, mesh, a.smooth, T, R_seq=R_seq)
             if R_seq is not None:

@@ -1,49 +1,49 @@
 {
- "fetched_at": "2026-10-17T16:34:05+00:00",
+ "fetched_at": "2026-10-18T18:00:31+00:00",
  "metrics": {
   "CD-H": {
    "teams": 28,
-   "rank": 23,
-   "score": 17.86488,
-   "best": 13.36778,
+   "rank": 24,
+   "score": 17.72016,
+   "best": 13.27666,
    "third": 14.01671,
-   "median": 15.48515,
+   "median": 15.41265,
    "worst": 73.64771,
    "top": [
     {
-     "team": "Lodestar",
-     "score": 13.36778
+     "team": "EviisKitson",
+     "score": 13.27666
     },
     {
-     "team": "EviisKitson",
-     "score": 13.43306
+     "team": "Lodestar",
+     "score": 13.36778
     },
     {
      "team": "RobotPI Lab",
      "score": 14.01671
     },
     {
-     "team": "ByeByeHelloHaHaHa",
-     "score": 14.20399
+     "team": "BarcelonaHoneyCod",
+     "score": 14.18596
     },
     {
-     "team": "um",
-     "score": 14.85738
+     "team": "ByeByeHelloHaHaHa",
+     "score": 14.20399
     }
    ]
   },
   "CD-O": {
    "teams": 28,
-   "rank": 26,
-   "score": 145.40682,
-   "best": 17.50957,
-   "third": 18.81373,
-   "median": 32.18318,
+   "rank": 22,
+   "score": 57.17802,
+   "best": 17.32608,
+   "third": 18.74104,
+   "median": 29.7701,
    "worst": 173.355,
    "top": [
     {
      "team": "EviisKitson",
-     "score": 17.50957
+     "score": 17.32608
     },
     {
      "team": "xpz666",
@@ -51,30 +51,34 @@
     },
     {
      "team": "RobotPI Lab",
-     "score": 18.81373
+     "score": 18.74104
+    },
+    {
+     "team": "Swithinraj ",
+     "score": 18.76641
     },
     {
      "team": "Lodestar",
      "score": 19.5252
-    },
-    {
-     "team": "sv1105",
-     "score": 23.05002
     }
    ]
   },
   "ACC-H": {
    "teams": 28,
-   "rank": 7,
-   "score": 0.14528,
+   "rank": 6,
+   "score": 0.14019,
    "best": 0.13724,
-   "third": 0.13826,
-   "median": 0.17835,
+   "third": 0.13809,
+   "median": 0.17446,
    "worst": 2.49281,
    "top": [
     {
      "team": "EviisKitson",
      "score": 0.13724
+    },
+    {
+     "team": "BarcelonaHoneyCod",
+     "score": 0.13758
     },
     {
      "team": "RobotPI Lab",
@@ -86,22 +90,18 @@
     },
     {
      "team": "Swithinraj ",
-     "score": 0.14171
-    },
-    {
-     "team": "Lattice Studios",
-     "score": 0.14174
+     "score": 0.13955
     }
    ]
   },
   "ACC-O": {
    "teams": 28,
-   "rank": 6,
+   "rank": 7,
    "score": 0.07429,
    "best": 0.07075,
-   "third": 0.07136,
-   "median": 0.18698,
-   "worst": 2.09073,
+   "third": 0.07109,
+   "median": 0.12737,
+   "worst": 0.99505,
    "top": [
     {
      "team": "Lodestar",
@@ -109,6 +109,10 @@
     },
     {
      "team": "RobotPI Lab",
+     "score": 0.07083
+    },
+    {
+     "team": "EviisKitson",
      "score": 0.07109
     },
     {
@@ -116,12 +120,8 @@
      "score": 0.07136
     },
     {
-     "team": "EviisKitson",
-     "score": 0.07288
-    },
-    {
-     "team": "Marcell",
-     "score": 0.07429
+     "team": "Swithinraj ",
+     "score": 0.07144
     }
    ]
   },
@@ -131,7 +131,7 @@
    "score": 0.0,
    "best": 0.0,
    "third": 0.0,
-   "median": 0.00213,
+   "median": 0.00149,
    "worst": 0.1007,
    "top": [
     {
@@ -151,11 +151,11 @@
      "score": 0.0
     },
     {
-     "team": "Lodestar",
-     "score": 5e-05
+     "team": "Swithinraj ",
+     "score": 0.0
     }
    ]
   }
  },
- "rank_sum": 64
+ "rank_sum": 61
 }

@@ -11,6 +11,7 @@ rotation. Finally the rotation sequence is smoothed per scored stretch.
 
 Output: work/objtrack/epNNNNNN_rot.npz (frame_ids, R [N,3,3], iou, iou_seed_const, iou_identity).
 """
+import os
 import argparse, json, sys, time
 from pathlib import Path
 import numpy as np, torch, trimesh
@@ -28,7 +29,11 @@ def load_budget_mesh(path):
     if len(m.faces) > 4096 or len(m.vertices) > 4096:
         import tempfile
         with tempfile.NamedTemporaryFile(suffix=".obj", delete=False) as f:
-            m.export(f.name); bv, bf = budget_mesh(f.name, 4096, 4096)
+            m.export(f.name)
+        try:
+            bv, bf = budget_mesh(f.name, 4096, 4096)
+        finally:
+            os.unlink(f.name)                                                # was leaking into /tmp
         bf = np.asarray(bf, np.int64); bf = bf[(bf[:, 0] != bf[:, 1]) | (bf[:, 1] != bf[:, 2])]
         m = trimesh.Trimesh(np.asarray(bv, np.float64), bf, process=False)
     v = np.asarray(m.vertices, np.float32); v = v - v.mean(0); v = v / max(np.ptp(v, axis=0).max(), 1e-6)   # unit size, centred

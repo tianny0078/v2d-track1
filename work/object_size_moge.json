@@ -1,0 +1,15 @@
+{
+ "note": "per-object median over its 3 episodes of S=ext_px*z_moge/f on least-occluded frames (sub_v4b depths, 2026-10-18)",
+ "size_m": {
+  "hula_hoop": 0.76,
+  "big_red_bowl": 0.29,
+  "iron": 0.32,
+  "white_desk": 1.35,
+  "black_pan": 0.19,
+  "foam_grass_block": 0.28,
+  "paint_roller": 0.19,
+  "pink_foam_roll": 0.57,
+  "short_wood_stool": 0.64,
+  "white_laptop_cart": 0.82
+ }
+}
