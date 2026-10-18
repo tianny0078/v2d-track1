@@ -103,3 +103,5 @@
 第二次 `--dry-run` 报 0.01 GB → 幂等。周期运行：`src/disk_cleanup.sh`（可加进 cron / refresh_dashboard.sh）。
 - 2026-10-18 21:48 定时清理：释放 0.01 GB（sub_size_test、__pycache__）；根分区可用 181 GB (95%)；/tmp 43 GB，其中 Track-3 的 track3-hourly-*.tar.gz 20 GB（到阈值，未删）；sub_v5 已加入 KEEP。
 - 2026-10-18 21:53 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 181G；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。
+- 2026-10-19 03:48 定时清理：释放 0.01 GB（pip 缓存、__pycache__）；根分区可用 170G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；sub_v6/sub_v7 加入 KEEP。
+- 2026-10-19 03:53 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 170G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。

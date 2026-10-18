@@ -24,7 +24,7 @@ set -uo pipefail
 PROJ=/home/tianyuan/projects/v2d_track1
 WORK=$PROJ/work
 # export dirs that are submitted or submission candidates -- edit this list as the project moves on
-KEEP_SUBS=(sub_place7 sub_track2 sub_v4b sub_moge2 sub_track1 sub_v5)
+KEEP_SUBS=(sub_place7 sub_track2 sub_v4b sub_moge2 sub_track1 sub_v5 sub_v6 sub_v7)
 CURRENT_SESSION=${CLAUDE_SESSION_DIR:-/tmp/claude-1017/-home-tianyuan/97442652-26ed-4696-bcac-ae17101ef4fa}
 SCRATCH_MAX_DAYS=3          # /tmp/claude-* scratch older than this is removed
 TORCH_EXT_MAX_DAYS=7
