@@ -1,13 +1,13 @@
 {
- "fetched_at": "2026-10-20T02:00:21+00:00",
+ "fetched_at": "2026-10-20T04:00:21+00:00",
  "metrics": {
   "CD-H": {
-   "teams": 34,
-   "rank": 30,
-   "score": 17.72016,
+   "teams": 35,
+   "rank": 24,
+   "score": 15.51705,
    "best": 13.27666,
    "third": 13.97392,
-   "median": 15.41265,
+   "median": 15.38396,
    "worst": 73.64771,
    "top": [
     {
@@ -33,7 +33,7 @@
    ]
   },
   "CD-O": {
-   "teams": 34,
+   "teams": 35,
    "rank": 23,
    "score": 41.7042,
    "best": 17.10165,
@@ -64,7 +64,7 @@
    ]
   },
   "ACC-H": {
-   "teams": 34,
+   "teams": 35,
    "rank": 7,
    "score": 0.14019,
    "best": 0.13724,
@@ -95,7 +95,7 @@
    ]
   },
   "ACC-O": {
-   "teams": 34,
+   "teams": 35,
    "rank": 7,
    "score": 0.07429,
    "best": 0.07075,
@@ -126,7 +126,7 @@
    ]
   },
   "PEN": {
-   "teams": 34,
+   "teams": 35,
    "rank": 2,
    "score": 0.0,
    "best": 0.0,
@@ -157,7 +157,7 @@
    ]
   }
  },
- "rank_sum": 69,
+ "rank_sum": 63,
  "overall": [
   {
    "team": "EviisKitson",
@@ -403,6 +403,33 @@
    "place": 9
   },
   {
+   "team": "Tony",
+   "rank_sum": 61,
+   "metrics": {
+    "CD-H": {
+     "rank": 24,
+     "score": 15.51705
+    },
+    "CD-O": {
+     "rank": 23,
+     "score": 41.7042
+    },
+    "ACC-H": {
+     "rank": 7,
+     "score": 0.14019
+    },
+    "ACC-O": {
+     "rank": 6,
+     "score": 0.07429
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 10
+  },
+  {
    "team": "sv1105",
    "rank_sum": 64,
    "metrics": {
@@ -425,33 +452,6 @@
     "PEN": {
      "rank": 15,
      "score": 0.00102
-    }
-   },
-   "place": 10
-  },
-  {
-   "team": "Tony",
-   "rank_sum": 67,
-   "metrics": {
-    "CD-H": {
-     "rank": 30,
-     "score": 17.72016
-    },
-    "CD-O": {
-     "rank": 23,
-     "score": 41.7042
-    },
-    "ACC-H": {
-     "rank": 7,
-     "score": 0.14019
-    },
-    "ACC-O": {
-     "rank": 6,
-     "score": 0.07429
-    },
-    "PEN": {
-     "rank": 1,
-     "score": 0.0
     }
    },
    "place": 11
@@ -484,33 +484,6 @@
    "place": 12
   },
   {
-   "team": "Marcell",
-   "rank_sum": 79,
-   "metrics": {
-    "CD-H": {
-     "rank": 23,
-     "score": 15.56281
-    },
-    "CD-O": {
-     "rank": 22,
-     "score": 40.43128
-    },
-    "ACC-H": {
-     "rank": 16,
-     "score": 0.15333
-    },
-    "ACC-O": {
-     "rank": 6,
-     "score": 0.07429
-    },
-    "PEN": {
-     "rank": 12,
-     "score": 0.00053
-    }
-   },
-   "place": 13
-  },
-  {
    "team": "Xueyi Wang (FF)",
    "rank_sum": 80,
    "metrics": {
@@ -535,18 +508,45 @@
      "score": 0.00204
     }
    },
+   "place": 13
+  },
+  {
+   "team": "Marcell",
+   "rank_sum": 81,
+   "metrics": {
+    "CD-H": {
+     "rank": 25,
+     "score": 15.56281
+    },
+    "CD-O": {
+     "rank": 22,
+     "score": 40.43128
+    },
+    "ACC-H": {
+     "rank": 16,
+     "score": 0.15333
+    },
+    "ACC-O": {
+     "rank": 6,
+     "score": 0.07429
+    },
+    "PEN": {
+     "rank": 12,
+     "score": 0.00053
+    }
+   },
    "place": 14
   },
   {
    "team": "Furqan Zaheer",
-   "rank_sum": 84,
+   "rank_sum": 86,
    "metrics": {
     "CD-H": {
-     "rank": 34,
+     "rank": 35,
      "score": 73.64771
     },
     "CD-O": {
-     "rank": 33,
+     "rank": 34,
      "score": 169.91766
     },
     "ACC-H": {
@@ -566,10 +566,10 @@
   },
   {
    "team": "SNU CVLAB",
-   "rank_sum": 87,
+   "rank_sum": 88,
    "metrics": {
     "CD-H": {
-     "rank": 19,
+     "rank": 20,
      "score": 15.4285
     },
     "CD-O": {
@@ -593,10 +593,10 @@
   },
   {
    "team": "xpz666",
-   "rank_sum": 93,
+   "rank_sum": 95,
    "metrics": {
     "CD-H": {
-     "rank": 22,
+     "rank": 23,
      "score": 15.51196
     },
     "CD-O": {
@@ -604,7 +604,7 @@
      "score": 18.20989
     },
     "ACC-H": {
-     "rank": 28,
+     "rank": 29,
      "score": 0.94279
     },
     "ACC-O": {
@@ -620,10 +620,10 @@
   },
   {
    "team": "Open4D",
-   "rank_sum": 97,
+   "rank_sum": 98,
    "metrics": {
     "CD-H": {
-     "rank": 18,
+     "rank": 19,
      "score": 15.41265
     },
     "CD-O": {
@@ -647,14 +647,14 @@
   },
   {
    "team": "Kelly To the H",
-   "rank_sum": 99,
+   "rank_sum": 101,
    "metrics": {
     "CD-H": {
-     "rank": 32,
+     "rank": 33,
      "score": 41.33827
     },
     "CD-O": {
-     "rank": 31,
+     "rank": 32,
      "score": 103.31406
     },
     "ACC-H": {
@@ -674,10 +674,10 @@
   },
   {
    "team": "avinsingh",
-   "rank_sum": 101,
+   "rank_sum": 103,
    "metrics": {
     "CD-H": {
-     "rank": 29,
+     "rank": 31,
      "score": 17.06481
     },
     "CD-O": {
@@ -728,7 +728,7 @@
   },
   {
    "team": "Javier Medel, MSc.",
-   "rank_sum": 105,
+   "rank_sum": 106,
    "metrics": {
     "CD-H": {
      "rank": 11,
@@ -739,7 +739,7 @@
      "score": 23.48324
     },
     "ACC-H": {
-     "rank": 32,
+     "rank": 33,
      "score": 1.15894
     },
     "ACC-O": {
@@ -755,10 +755,10 @@
   },
   {
    "team": "longbot",
-   "rank_sum": 110,
+   "rank_sum": 111,
    "metrics": {
     "CD-H": {
-     "rank": 21,
+     "rank": 22,
      "score": 15.44857
     },
     "CD-O": {
@@ -782,14 +782,14 @@
   },
   {
    "team": "Punya Malaiya",
-   "rank_sum": 110,
+   "rank_sum": 112,
    "metrics": {
     "CD-H": {
-     "rank": 33,
+     "rank": 34,
      "score": 42.31736
     },
     "CD-O": {
-     "rank": 28,
+     "rank": 29,
      "score": 78.69475
     },
     "ACC-H": {
@@ -809,22 +809,22 @@
   },
   {
    "team": "Ankita Bajaj",
-   "rank_sum": 116,
+   "rank_sum": 119,
    "metrics": {
     "CD-H": {
      "rank": 15,
      "score": 15.17688
     },
     "CD-O": {
-     "rank": 30,
+     "rank": 31,
      "score": 101.64738
     },
     "ACC-H": {
-     "rank": 31,
+     "rank": 32,
      "score": 0.98694
     },
     "ACC-O": {
-     "rank": 34,
+     "rank": 35,
      "score": 2.72624
     },
     "PEN": {
@@ -836,10 +836,10 @@
   },
   {
    "team": "MostlyKIGuess",
-   "rank_sum": 117,
+   "rank_sum": 119,
    "metrics": {
     "CD-H": {
-     "rank": 28,
+     "rank": 30,
      "score": 16.31787
     },
     "CD-O": {
@@ -862,38 +862,11 @@
    "place": 26
   },
   {
-   "team": "AI_CENTER",
-   "rank_sum": 121,
-   "metrics": {
-    "CD-H": {
-     "rank": 26,
-     "score": 15.71611
-    },
-    "CD-O": {
-     "rank": 20,
-     "score": 37.42007
-    },
-    "ACC-H": {
-     "rank": 20,
-     "score": 0.17446
-    },
-    "ACC-O": {
-     "rank": 21,
-     "score": 0.12737
-    },
-    "PEN": {
-     "rank": 34,
-     "score": 0.08886
-    }
-   },
-   "place": 27
-  },
-  {
    "team": "xiaopai7788",
-   "rank_sum": 121,
+   "rank_sum": 123,
    "metrics": {
     "CD-H": {
-     "rank": 27,
+     "rank": 29,
      "score": 15.90236
     },
     "CD-O": {
@@ -913,61 +886,34 @@
      "score": 0.00135
     }
    },
-   "place": 28
+   "place": 27
   },
   {
-   "team": "TheTensorGeek",
-   "rank_sum": 122,
-   "metrics": {
-    "CD-H": {
-     "rank": 20,
-     "score": 15.44549
-    },
-    "CD-O": {
-     "rank": 29,
-     "score": 84.22687
-    },
-    "ACC-H": {
-     "rank": 30,
-     "score": 0.97204
-    },
-    "ACC-O": {
-     "rank": 32,
-     "score": 0.74841
-    },
-    "PEN": {
-     "rank": 11,
-     "score": 0.0003
-    }
-   },
-   "place": 29
-  },
-  {
-   "team": "fw095",
+   "team": "AI_CENTER",
    "rank_sum": 124,
    "metrics": {
     "CD-H": {
-     "rank": 25,
-     "score": 15.5826
+     "rank": 28,
+     "score": 15.71611
     },
     "CD-O": {
-     "rank": 34,
-     "score": 187.92225
+     "rank": 20,
+     "score": 37.42007
     },
     "ACC-H": {
-     "rank": 29,
-     "score": 0.9666
+     "rank": 20,
+     "score": 0.17446
     },
     "ACC-O": {
-     "rank": 18,
-     "score": 0.10892
+     "rank": 21,
+     "score": 0.12737
     },
     "PEN": {
-     "rank": 18,
-     "score": 0.0014
+     "rank": 35,
+     "score": 0.08886
     }
    },
-   "place": 30
+   "place": 28
   },
   {
    "team": "Null Walker",
@@ -994,14 +940,41 @@
      "score": 0.00975
     }
    },
-   "place": 31
+   "place": 29
   },
   {
-   "team": "CARI4D Basline",
+   "team": "TheTensorGeek",
    "rank_sum": 125,
    "metrics": {
     "CD-H": {
-     "rank": 24,
+     "rank": 21,
+     "score": 15.44549
+    },
+    "CD-O": {
+     "rank": 30,
+     "score": 84.22687
+    },
+    "ACC-H": {
+     "rank": 31,
+     "score": 0.97204
+    },
+    "ACC-O": {
+     "rank": 32,
+     "score": 0.74841
+    },
+    "PEN": {
+     "rank": 11,
+     "score": 0.0003
+    }
+   },
+   "place": 30
+  },
+  {
+   "team": "CARI4D Basline",
+   "rank_sum": 128,
+   "metrics": {
+    "CD-H": {
+     "rank": 26,
      "score": 15.57527
     },
     "CD-O": {
@@ -1009,7 +982,7 @@
      "score": 23.16246
     },
     "ACC-H": {
-     "rank": 34,
+     "rank": 35,
      "score": 1.97387
     },
     "ACC-O": {
@@ -1021,18 +994,45 @@
      "score": 0.00423
     }
    },
+   "place": 31
+  },
+  {
+   "team": "fw095",
+   "rank_sum": 128,
+   "metrics": {
+    "CD-H": {
+     "rank": 27,
+     "score": 15.5826
+    },
+    "CD-O": {
+     "rank": 35,
+     "score": 187.92225
+    },
+    "ACC-H": {
+     "rank": 30,
+     "score": 0.9666
+    },
+    "ACC-O": {
+     "rank": 18,
+     "score": 0.10892
+    },
+    "PEN": {
+     "rank": 18,
+     "score": 0.0014
+    }
+   },
    "place": 32
   },
   {
    "team": "um",
-   "rank_sum": 133,
+   "rank_sum": 134,
    "metrics": {
     "CD-H": {
      "rank": 8,
      "score": 14.85738
     },
     "CD-O": {
-     "rank": 32,
+     "rank": 33,
      "score": 105.26281
     },
     "ACC-H": {
@@ -1051,11 +1051,38 @@
    "place": 33
   },
   {
-   "team": "World Reward",
-   "rank_sum": 144,
+   "team": "Pragun Sharma",
+   "rank_sum": 142,
    "metrics": {
     "CD-H": {
-     "rank": 31,
+     "rank": 18,
+     "score": 15.38396
+    },
+    "CD-O": {
+     "rank": 28,
+     "score": 73.66919
+    },
+    "ACC-H": {
+     "rank": 28,
+     "score": 0.93185
+    },
+    "ACC-O": {
+     "rank": 34,
+     "score": 1.40541
+    },
+    "PEN": {
+     "rank": 34,
+     "score": 0.07118
+    }
+   },
+   "place": 34
+  },
+  {
+   "team": "World Reward",
+   "rank_sum": 146,
+   "metrics": {
+    "CD-H": {
+     "rank": 32,
      "score": 27.99416
     },
     "CD-O": {
@@ -1063,7 +1090,7 @@
      "score": 68.03361
     },
     "ACC-H": {
-     "rank": 33,
+     "rank": 34,
      "score": 1.64535
     },
     "ACC-O": {
@@ -1075,9 +1102,9 @@
      "score": 0.00384
     }
    },
-   "place": 34
+   "place": 35
   }
  ],
- "rank_sum_tied": 67,
- "place": 11
+ "rank_sum_tied": 61,
+ "place": 10
 }
