@@ -1090,3 +1090,154 @@
   sub_v6（不锚定 + 最优朝向 + 居中网格）导出 29.5/30，门控后提交（今日剩 2 次）。
 - `03:13` 🏁 **提交 #13 sub_v6（8dafb12）回分：CD-O 41.70**（#12 44.44 → −2.7：最优朝向 + 居中网格有效），ACC-O 0.112（居中后比 0.133 好，仍不及 0.074），CD-H/ACC-H 同 #9，PEN 0。
   今日剩 1 次 → 用于单变量探针 sub_v7 = v6 但物体 mask 内深度取**中位数**而非 p20（接触帧分析里两者偏差相当，榜单裁决）。
+- `04:06` 🏁 **提交 #14 sub_v7（2c3a2aa）回分：CD-O 46.32（v6 的 p20 版 41.70 → 中位数差 4.6 cm）** → 保留 p20（最近表面）。今日 5 次用完。
+  今日物体线裁决汇总：锚定 −12.7（有害）、最优朝向+居中 −2.7（有效）、MoGe 尺寸 +0.4（无益）、中位数深度 +4.6（有害）。
+  "最近表面"比"中位"好，暗示我们的物体深度整体偏远 → 明天探针：物体深度乘以 0.93 / 0.87（全局缩近），以及关闭呼啦圈的"细物体锚定到手"规则。
+- `2026-10-18 13:21 PDT` **处理 advice.md 第 0 节的规则问题**：
+  (1) 官网规则是"每队每周最多 5 次，最后三天不限"，FAQ 说按 track 计；我们 10/16–10/18 已交 14 次（按 Kaggle 的每日 5 次）。**立即暂停提交**，
+  已起草确认邮件 `notes/email-organizers.md`（同时问"各指标取最好 vs 单次指定提交"），由用户发送；确认前不再提交，v8/v9 导出完成后只保留不提。
+  (2) 时间戳统一为 **PDT**：`submissions.md` 的时间列改为 git commit 时间（PDT），#4/#5 补上 sha（05d23a4 / e79c0b8）；
+  run_*.sh / disk_cleanup.sh 的 `date` 改为 TZ=America/Los_Angeles；本日志从此条起用 PDT（之前的条目是估算的北京时间，不回改）。
+  (3) 按 advice §5 的顺序：① 完整复现官方 `v2d_cari4d`（子代理已启动，输出 work/sub_cari4d + notes/cari4d-repro.md）→ ② 地面平面约束 → ③ 只修平移的深度对齐 → ④ 物体平移重平滑。
+
+## 2026-10-18 · 官方 CARI4D baseline 复现（work/v2d_official）
+
+- `13:40` 读完 `v2d_cari4d` 8 步脚本（map 在 `notes/cari4d-repro.md` §1）。**阻塞**：第 06 步 CoCoNet 权重 `nvidia/cari4d_commercial` 是 gated(auto) HF 仓库，本机无任何 HF token（匿名 401）→ 需要用户提供一个接受过条款的 HF read token（`export HF_TOKEN=...` 或 `hf auth login`），否则只能跑 "CARI4D − CoCoNet"（初始化 + 第 07 步接触精修）。
+  环境：系统 python3 补装 av/pyrender/transformations/ruamel.yaml/warp-lang/kornia/imgaug/videoio 等 + nvdiffrast 0.4.0（CUDA_HOME=12.8）；kaolin 无 sm_120 wheel → 写了 2 函数 shim（pytorch3d 点-面距离 + 广义绕数）。
+  权重：SAM3D（Blendcap 镜像）、MHR、MoGe-2（pinned rev 与 cache 同 blob，符号链接）、FoundationPose（NAS 同名 run）全部链接到位，无需下载。
+  输入替换：视频从 JPG 帧重编码并裁到有 mask 的帧段；mask npz→H5；物体 mesh = meshes_v2 × 共识尺寸，抽稀到 3 万面。ep14 的 01–05 在 GPU2 上跑，其余 29 集的输入在准备。
+- `13:50` **ep14 官方 01–05 跑通**（GPU2，382 帧）：01 MoGe-2 39 s、02 export 31 s、03 SAM3D 49 s、04 深度对齐 268 s（含 nvdiffrast 首次 JIT）、05 FoundationPose 49 s（register 1 次 + track 381 次，IoU 中位 0.67，无 fallback）。
+  **参数回环验证通过**：他们的 7 块 MHR 参数 → 我们的 136 维 pose（`src/cari4d_export.py::to_pose136`，取 MHRHead 的 model_params + 10·diag(1,−1,−1)·mhr_trans）→ `src/mhr_local.MHR.forward` 顶点与其 layer 解码顶点最大差 **1e-6 m**；根关节在 f90 的 cam_t 与我们旧 SAM3D 结果差 4 mm（同模型同提示）。
+  MoGe K（fx 812.6）与我们的 K（821.5）相差 1%，已替换为我们的。
+  **物体诊断（ep14 平底锅）**：FoundationPose 的平移完全贴着"对齐后的 MoGe 深度"走（f60：2.74 vs MoGe@mask 2.70），而 MoGe 在锅上的深度相对手腕漂移 −0.3 … +1.2 m（f360：物体 3.96 m，手腕 2.77 m）；物体-手腕距离中位 **73 cm**，382 帧无一 <15 cm → 第 07 步接触门限（<5 cm）只激活 10 帧。
+  → 官方流水线里把物体拉回手上的是 CoCoNet（缺权重），没有它 CD-O 不会好于我们现有的 MoGe 比值方案。FoundationPose 权重 NAS 上的 config.yml 无读权限，改从官方 Google Drive gdown（sha 与 NAS 一致）。
+  30 集输入全部备好（物体 mask 全空帧：ep4 16、ep7 44、ep18 2、ep20 11），01–05 两卡批跑中；ep14 的 07（300 步）在跑。
+- `2026-10-18 14:00 PDT` 小时汇总：榜单 CD-H 第 24 → **25**（别队提交），名次和 60。官方 CARI4D 复现：ep14 全链跑通（01–08，含 Blackwell 编译），30 集批处理在 GPU2/3 上跑；
+  **阻塞**：第 06 步 CoCoNet 权重 `nvidia/cari4d_commercial` 是 HF gated 仓库，本机无 token → 子代理用"几何接触初值"替代；ep14 上没有 CoCoNet 的官方物体链比我们差（到手腕 67 vs 32 cm），身体 ACC-H 代理 0.41（抖）。
+  要复现 23.16 的官方 CD-O，很可能必须有 CoCoNet → 需要用户在 HF 申请 `nvidia/cari4d_commercial` 访问并提供 token。v8/v9 导出完成（v8 PEN 通过），按规则暂停不提交。
+- `2026-10-18 14:14 PDT` 探针导出就绪、均过 PEN：**sub_v8**（物体深度 ×0.93，ACC-O 代理 0.058/0.39）、**sub_v9**（关闭呼啦圈手锚定，0.081/0.32）。按每周 5 次规则暂停，待主办方回复后再按 advice §5 顺序提交（官方复现版优先）。
+- `2026-10-18 15:00 PDT` 小时汇总：新队加入（29 队），CD-H 第 26、CD-O 第 21，名次和 62。官方复现批处理 16/30 集到 05–06 步；GPU1 被 Track-3 训练占满（90 GB/100%）。
+  ⚠️ 根分区可用 181 → **114 GB**（官方链路每集中间产物很大），需立刻裁剪中间文件。
+- `14:20` **磁盘告急处理**（协调者：根分区 1 h 内 181→114 GB；runs 每集 3–4.5 GB）：新增 `src/cari4d_prune.py`（05 完 → 删 raw.npy 1.35 GB；06 完 → 删 aligned.h5 + sam3d 缓存；07 完且已导出 → 删 init_bundle/refinement_checkpoint/export 的 RGB+mask h5/视频，只留 refined.pth + 小 pkl/json），`--loop` 每 2 min 先导出已完成 07 的集再剪。缓存都在 `work/v2d_official/weights`（符号链接到已有 HF/torch cache，没有新下载），/tmp 无残留。所有 GPU 作业只在 GPU2/3。
+- `2026-10-18 15:02 PDT` 官方复现的磁盘问题已处理：子代理加了 `src/cari4d_prune.py --loop`（每集 07 步完成并导出后删中间产物，只留 refined.pth/参数/导出），runs 49 → 27 GB，根分区可用 114 → **136 GB**；
+  已导出 ep0/1/3/14 均通过参数回环（1e-6 m）。批处理继续在 GPU2/3。
+- `16:05` 01–04 全 30 集完成（中位：MoGe 40 s、export 27 s、SAM3D 38 s、深度对齐 336 s）；05 FoundationPose 21/30，**9 集失败**（2,4,5,7,8,12,17,18,20）：官方输出校验拒绝 `fp_centroid_distance` 里的 inf——track 模式下物体被完全遮挡的帧渲染轮廓为空，`measure_visible_silhouettes` 留下 inf。本地打补丁（inf→nan，`run_foundationpose_mhr_export.py` 一行，原件 `.orig`），9 集重跑中。
+  07 精修中位 569 s（390–869）。**ACC-H 诊断**（ep0/ep3）：SAM3D 逐帧初始化的关节加速度 3.66 / 0.51，07 精修后 1.80 / 0.29（我们旧的 raw SAM3D 2.52 / 0.49）——官方链路的时序平滑全靠 CoCoNet；没有它 ACC-H 过不了门。导出脚本加 `--smooth σ`（我们的 wrap-safe 平滑，只作为第二个候选 `sub_cari4d_s3`，原样导出仍是 `sub_cari4d`）。
+- `2026-10-18 16:00 PDT` 小时汇总：官方复现 refined 4/30、导出 9 文件；GPU2/3 满载（Track-3 占 GPU1）；根分区可用 138 GB（裁剪生效）。榜单不变（26/21/6/7/2，和 62）。提交暂停中。
+- `2026-10-18 17:00 PDT` 小时汇总：官方复现 refined 14/30（4 个 worker，GPU2/3 满载），导出 29 文件；根分区可用 145 GB。榜单不变（26/21/6/7/2）。提交暂停中。
+- `2026-10-18 18:00 PDT` 小时汇总：官方复现 refined 29/30、导出 59 文件（最后一集在跑，之后子代理跑四项门控）；根分区可用 153 GB。榜单：ACC-H 第 6 → **7**（别队提交），名次和 63。提交暂停中。
+- `18:10` 🏁 **官方 CARI4D（− CoCoNet）30/30 跑完并导出**：`work/sub_cari4d`（原样）、`work/sub_cari4d_s3`（+我们的 σ3 平滑）。GPU 时：04 对齐 2.9 h、07 精修 7.3 h（中位 819 s/集），其余 <1 h。
+  门控：原样 ACC-H 1.21 / ACC-O 1.91（FAIL）/ PEN 2023/9877 帧 ≤1.34 cm（FAIL）；平滑版 ACC-H 0.089、px 6.9、ACC-O 0.093/0.273 PASS、PEN 1977/9877 FAIL。物体-手腕中位 59 cm（sub_v6 39）。
+  结论：缺 CoCoNet 权重 → 人体≈raw SAM3D、物体≈人体定标的 MoGe 深度 + FoundationPose 跟踪，PEN 需另做推离；不是榜上 baseline 的复现。详见 `notes/cari4d-repro.md` §5。磁盘：runs 剪到 9.3 GB，根分区剩 153 GB。未提交。
+- `2026-10-18 18:23 PDT` 📋 **官方 CARI4D 复现（减 CoCoNet）完成**（`notes/cari4d-repro.md`）：01–05、07 步按原样跑通 30/30（Blackwell：nvdiffrast JIT、kaolin 两函数 shim、FoundationPose 走 PyTorch 后端），
+  06 步 CoCoNet 因 HF gated 权重缺失被几何接触初值替代。门控：原始输出 ACC-H 代理 1.21（≈逐帧 SAM3D 抖动）、ACC-O 1.9（FAIL）、PEN 1.34 cm（官方穿透项是"物体点进身体"，不是"手进物体"）；
+  加 σ3 平滑后 ACC-H 0.089、ACC-O 0.093 PASS，但物体到手腕 59 cm（sub_v6 39）。**结论：没有 CoCoNet 的官方链不比我们现有版本好，不值一次提交**；
+  拿到 `nvidia/cari4d_commercial` token 后 `src/cari4d_run.py --stages 04,06,07 --force` 约 15 min/集可补完。GPU 时间：04 步 2.9 h + 07 步 7.3 h。
+- `2026-10-18 22:01 PDT` 小时汇总（补 4 个小时的定时刷新）：无新任务在跑，GPU 全空（Track-3 训练已结束），根分区可用 153 GB。榜单不变（26/21/7/7/2，和 63）。
+  等待：主办方限额回复、HF `nvidia/cari4d_commercial` 访问、docker 清理授权。
+- `2026-10-18 22:27 PDT` **HF token 就位（read，用户 Tony332），`nvidia/cari4d_commercial` 可读**（CoCoNet `step200000.pth`）。让复现子代理补跑第 06（CoCoNet）/07 步，30 集两卡并行。
+  docker builder prune 释放 126.9 GB，根分区可用 265 GB。
+- `22:40` **CoCoNet 解锁**（协调者给了 HF token，Tony332）：`nvidia/cari4d_commercial` step200000.pth 2.0 GB 下载，sha256 核对通过；DINOv2 vitb14/vits14 backbone 权重按官方 pinned sha 下载到 torch hub。
+  真正的官方复现第二遍（`src/run_cari4d_cc.sh`，GPU1/2/3 各 10 集）：每集重跑 01（raw 深度已剪）→ `src/cari4d_regen_export.py` 重建 export 的 RGB/mask h5（**不动** output_aligned.glb/edex，FoundationPose 位姿依赖该对齐系）→ 04 → 官方 06 CoCoNet → 07；无 CoCoNet 的 refined.pth 改名 `refined_noCoCoNet.pth` 保留。
+  踩坑：pruner 的规则按第一遍留下的 04/06 marker 删了刚生成的 raw.npy / aligned.h5（ep0/1/2/14），cc 模式改为只在新 refined.pth 晚于 coconet.pth 时才剪；这 4 集排第二遍。
+  PEN 推离后处理 `src/cari4d_pushout.py`（手→质心两遍包络推离，只改最终平移）在 ep11（最差集）上：106/803 帧穿插 → 0，平移中位移 2.1 cm、最大 24.6 cm，ACC-O 代理 0.111。
+- `2026-10-18 22:45 PDT` **官方第 06 步 CoCoNet 跑通**（ep14）：物体平移修正中位 0.86 m（z 3.90 → 3.03 m，回到手上），并预测两手接触帧 222/125 —— 正是之前缺的那块。30 集 06/07 在 GPU1/2/3 上跑。
+- `2026-10-18 22:50 PDT` 查 RoboPanda：官方 standings 数据源是 GitHub `MVerghese/v2d-leaderboard-data/leaderboard.json`（每日由 Kaggle API 生成，**未注册的队也在**，我们 "Tony" 在第 24 行）。
+  10/10 快照里 RoboPanda（成员 vectorwangel）第 3；该成员现在在 **"RobotPI Lab"**（pchanrung + vectorwangel），即改名/合队。RobotPI Lab 当前：CD-H 第 3 (14.02)、CD-O 第 4 (18.74)、ACC-H 第 3 (0.138)、ACC-O 第 2 (0.0708)、PEN 第 8 (0.00025)，名次和 20（我们 63）。
+- `2026-10-18 22:57 PDT` **BEHAVE 本地验证的运行侧**：`src/behave_root.py` 建隔离根目录 `work/behave_root`（src 拷贝、模型软链、8 段 BEHAVE 片段缩放到 1536×1152 = 赛题分辨率、内参 ×0.75、每段全部帧为一个计分段），
+  原样代码在 GPU0 上跑身体链（分割→关键点→SAM3D→FlowHMR→导出 raw/flow 两版），随后跑**榜单已打过分的两个反例**做校准：#8 关键点精修（榜 22.86）、#10 深度 ICP（榜 20.20）。
+  判据：若 BEHAVE 上排序与榜单一致（kp、depth 明显差于 raw/flow），验证集可信，此后改动先本地判方向。提交继续暂停（等主办方）。
+- `23:00` ep14 官方 06 CoCoNet 成功（77 s）：物体平移相对 FoundationPose 初值改动中位 **0.86 m**（z 中位 3.90→3.03 m），接触 logits>0 左 222 / 右 125 帧；人体平移只改 1 cm。06+07 后 ep14 物体-手腕中位 **30 cm**（无 CoCoNet 67 cm，sub_v6 32 cm），ACC-H 代理仍 0.41（人体时序基本没被 CoCoNet 平滑），重投影 7.5 px（无 CoCoNet 4.9）。
+  为提速改成锁队列：停掉固定列表 worker（正在跑的 python 步骤继续跑完），`src/run_cari4d_cc2.sh` 每卡 2 个 worker（GPU1/2/3 共 6 个，mkdir 原子认领），按帧数从长到短排队；GPU0 不动。
+- `2026-10-18 23:00 PDT` 📐 **BEHAVE 本地验证集建好**（`notes/behave-valset.md`）。许可：非商业科研、无需注册、不可再分发、公开图像需人脸打码。
+  8 段 × 450 帧（15 s，30 fps 连续）：Date01 chairwood_hand / stool_move / trashbin / boxmedium_hand / plasticcontainer，Date02 boxsmall_hand / tablesmall_move / toolbox。全部用 Kinect 1（k0/k3 在 Date01/02 丢帧 20–40%）。
+  下载 2.10 GB（30fps 参数 159 MB、calibs 396 MB、objects 197 MB、时间戳 11 MB；彩色 mp4 用 HTTP Range 从 tar 里只取 32 个，共 1.34 GB，其中 k1 0.38 GB）。帧去畸变后存 `work/behave/<seq>/frames`，共 3600 张。
+  约定逐项实测：SMPL-H v1.2 pkl 重建 BEHAVE 自带 person_fit.ply 误差 0.0002 mm（camd 的 npz 会差 9 mm）；物体模板 + rotvec 重建 chair_fit.ply 0.0002 mm；叠图 8/8 段对齐。
+  SMPL-H→MHR（CARI4D mhr2smplh_mapping 顶点对应、梯度拟合、每段一份 identity）：对应点残差均值 **0.87 cm**，顶点到表面 **0.52 cm**（映射自身的底是 0.54 cm）。GT 写成导出格式在 `work/behave_gt/<seq>/`。
+  `src/score_behave.py`：GT 对 GT 全 0；**sanity：SAM 3D Body（body 模式，GT mask 提示）chairwood 第 200–209 帧，CD-H 6.86 cm**，ACC-H 1.04，align 0.992。
+  注意：点集是 FPS 代理（绝对数不可比榜单）；BEHAVE GT 自身 |a| 0.48（比赛 GT 0.145），30fps 标注和逐帧注册差约 3 cm。协调者已在 `work/behave_root` 用这批数据跑人体流水线。
+- `2026-10-18 23:00 PDT` ⭐ **BEHAVE 带真值验证集建好**（`notes/behave-valset.md`）：8 段 × 450 帧（Kinect 1，Date01/02，男性受试者），许可为非商业科研、无需注册、**不得再分发且发表需打码 → 帧/网格不上看板**。
+  GT：SMPL-H v1.2 → MHR（CARI4D `mhr2smplh_mapping` 顶点对应拟合），对应点 0.87 cm、顶点到表面 0.52 cm（映射自身底 0.54）→ **本地 CD-H 差别 < 0.5 cm 无意义**。打分 `src/score_behave.py`（GT 对 GT 全 0；SAM3D 10 帧 sanity CD-H 6.86 cm）。
+  注意：体表/对齐点是我们的代理（官方索引不在 kit），只比 A/B 方向；BEHAVE GT 自身关节加速度 0.48（赛题 0.145）。新增 `src/score_behave_root.py` 给 behave_root 的导出打分。下载 2.1 GB。
+- `2026-10-18 23:06 PDT` BEHAVE 分割体检：ep7（toolbox）人 mask 落到远处小人上（1178 px）、ep6（tablesmall）和 ep3（stool）物体落到背景的红色桌/凳上 → 与赛题同样做法人工种子框重传播（ep7 人 0:(690,330,900,1050)、ep6 桌 0:(740,735,1030,1060)、ep3 凳 0:(610,840,770,960)），逐帧核对正确。
+  身体链从关键点步重新起跑，校准链排在其后。
+- `2026-10-18 23:53 PDT` **BEHAVE 本地打分第一批**（8 段 × 450 帧，代理体表点，只看 A/B）：
+  raw SAM3D+σ3（=#7 身体）**CD-H 13.14**；FlowHMR-px+σ3（=#9 身体）**18.85**（6/8 段更差，boxmedium 12.9→25.9、boxsmall 8.9→23.3）。ACC-H 两者 0.461（BEHAVE GT 自身 0.48）。
+  30 帧窗口（各自重新对齐）里 flow 只差 1–2 cm（0–30: 10.4 vs 11.4；200–230: 8.3 vs 9.6；420–450: 8.8 vs 10.6）→ 主要是 **FlowHMR 世界轨迹在 15 s 长片段上的漂移**，一次 Sim3 吸收不掉。
+  与榜单（flow 17.72 vs raw 17.86，几乎持平）方向不一致 → 先等校准变体（#8 关键点精修、#10 深度 ICP）看验证集是否可信，再下结论。
+- `2026-10-19 01:00 PDT` 小时汇总：CoCoNet 官方复现 30 集导出完成（work/sub_cari4d_cc 59 文件，子代理在跑门控）；BEHAVE 深度 ICP 校准拟合 5/8。榜单不变（综合第 9，名次和 61）。提交暂停中。
+- `2026-10-19 01:13 PDT` 📋 **BEHAVE 验证集校准结果**（同一套代码、8 段×450 帧，CD-H 代理，cm）vs 榜单 CD-H：
+  | 身体变体 | BEHAVE | 榜单 |
+  | raw SAM3D+σ3（#7） | **13.14** | 17.86 |
+  | FlowHMR-px+σ3（#9） | 18.85 | **17.72** |
+  | 关键点精修（#8） | 16.99 | 22.86 |
+  | 深度 ICP（#10，flow 初值） | 19.36 | 20.20 |
+  一致的：关键点精修比 raw 差（+3.9 / 榜 +5.0）、深度 ICP 比其初值差（+0.5 / 榜 +2.5）——**两次"本地代理骗人"的教训 BEHAVE 都能复现**。
+  不一致的：FlowHMR vs raw（BEHAVE +5.7，榜 −0.14）。分窗口看 flow 的差主要是 15 s 连续片段上的世界轨迹漂移；赛题计分帧是接触段，漂移影响可能小得多。
+  结论：验证集对"逐帧姿态/深度拟合类"改动可信；对"时序/轨迹模型类"改动要打折看。下一步可加一个更像赛题的打分口径（只在接触段计分）。
+- `2026-10-19 02:00 PDT` 小时汇总：综合名次 9 → **10**（别队上升），名次和 61。CoCoNet 复现导出 29/30（ep2 缺），无 worker 在跑 → 已通知子代理补 ep2、出 _s3/_pen 变体和门控。
+  GPU0/GPU3 现被 Track-3（foundation_stereo + FoundationPose，各 ~60 GB）占用；我们只用 GPU1/2。
+
+## 2026-10-19 · CoCoNet 官方复现收尾
+
+- `02:05` 29/30 集 06+07（CoCoNet）完成并导出到 `work/sub_cari4d_cc`。**ep2 失败原因**：官方 06 的几何引导裁剪 `prep/mhr_geometry_crop.py` 抛 "mesh geometry projects entirely outside the image"——FoundationPose track 把呼啦圈（细环，0.74 m）在原始帧 402–476 的 27 帧里跟丢到画面下方（可见度 0、IoU 0，其中 5 帧是计分帧），整个物体投影在图外。
+  本地补丁（`tools/run_mhr_wild_inference.py`，原件 `.orig`）：物体完全投影在图外的帧按 `object_pose_valid=False` 走裁剪器自带的"无物体"分支（空物体门）。补丁后 ep2 的 06 通过（93 s），07 在 GPU1 跑。
+  GPU0/3 被 Track-3 占用 → 剩余工作只用 GPU1/2；pruner 的导出也改到 GPU2。
+  `sub_cari4d_cc_s3`（+σ3 平滑）29 集已导出；推离（`src/cari4d_pushout.py`，手→质心两遍包络，只改最终平移）在 `_cc_pen` / `_cc_s3_pen` 上跑。
+- `2026-10-19 03:01 PDT` 小时汇总：CoCoNet 复现 30/30 完成（ep2 呼啦圈出画 27 帧导致官方 crop 报错，已修），_cc/_cc_s3 导出、推离变体在 GPU1/2 上做，门控待出。
+  **BEHAVE 物体侧校准**启动（GPU0）：物体网格→MoGe 深度→每集检测→朝向跟踪→导出 4 个与榜单已测版本对应的物体变体（锚定 #9、v6 #13、中位数深度 #14、旋转=I），看 BEHAVE 的 CD-O 排序是否与榜单一致。
+- `03:55` 🏁 **官方 CARI4D（含 CoCoNet）30/30 完成**，四个变体全部过门控脚本（详见 `notes/cari4d-repro.md` §6）：
+  原样 `sub_cari4d_cc`：ACC-H 1.183、px 8.4、ACC-O 6.28/111.9 FAIL（ep2 跟丢段物体在相机后方）、PEN 4387/9877 帧 ≤1.63 cm FAIL、物体-手腕 31.5 cm（sub_v6 39，22/30 集更近）。
+  `_cc_s3`：ACC-H 0.090、ACC-O 0.086/0.371 FAIL（ep2）、PEN 4281 FAIL。`_cc_pen`：PEN 0 PASS，ACC-O 仍 112。`_cc_s3_pen`：ACC-H 0.090、ACC-O 0.140/0.647 FAIL（ep2 0.65、ep15 0.52）、PEN 0 PASS、物体-手腕 35 cm。
+  第二个本地补丁：`run_mhr_wild_inference.py` 对整物体投影出画的帧设 object_pose_valid=False（ep2）。GPU 只用了 1/2/3（GPU3 在 Track-3 占用后停用），GPU0 未用。根分区剩 230 GB。未提交。
+- `2026-10-19 03:55 PDT` 📋 **官方 CARI4D（含 CoCoNet）完整复现完成**（子代理报告，`notes/cari4d-repro.md` §6）：30/30 集；CoCoNet 把物体拉回手边（物体-手腕 59 → 31.5 cm，22/30 集比 sub_v6 近），身体仍抖（ACC-H 代理 1.18，σ3 后 0.090），重投影 8.4 px。
+  ep2 官方输出在丢失呼啦圈的计分段把物体放到相机后面（z −1.96 m）→ 我在 _cc_s3 上把 37 个离谱帧（z<0.5 或偏离 31 帧中值 >0.5 m）的平移/旋转插值修补（min z 0.94 m），再重做 ep2 推离。
+  **候选 `sub_cari4d_cc_s3_pen`**：PEN 门控见下行；ACC-O 代理 0.135 / max 0.52（ep2、ep15 推离引入抖动，FAIL）。按 advice §5 这是第 1 个要提交的版本（预期接近官方 15.58 / 23.16）；等限额确认。
+- `2026-10-19 04:00 PDT` 小时汇总：新队加入（30 队），CD-H 第 27、CD-O 第 22，综合第 10，名次和 61 → **63**。官方复现候选 `sub_cari4d_cc_s3_pen` 就绪（PEN 0），等提交决定；BEHAVE 物体侧校准在朝向跟踪阶段（GPU0）。
+- `2026-10-19 06:02 PDT` BEHAVE 物体侧校准（第一批，同一 FlowHMR 身体）：**锚定 CD-O 52.87** vs **不锚定（旋转=I）47.97** → 锚定有害，方向与榜单一致（#9 锚定 57.18 vs #12 不锚定 44.44）。v6（跟踪朝向）/中位数深度两版导出中。看板：新队加入（31 队），综合第 10，名次和 63。
+- `2026-10-19 06:36 PDT` 📋 **BEHAVE 物体侧校准完成**（同一 FlowHMR 身体，CD-O 代理，cm）：
+  | 物体变体 | BEHAVE | 对应榜单 |
+  | 不锚定、旋转=I | **47.97** | （未测） |
+  | v6：不锚定 + 跟踪朝向 + 居中 | 51.28 | #13 **41.70** |
+  | 锚定 + 跟踪朝向 | 52.87 | #9 57.18 |
+  | v6 但中位数深度 | 54.48 | #14 46.32 |
+  一致：中位数深度比 p20 差（+3.2 / 榜 +4.6）、锚定比不锚定差（+1.6~4.9 / 榜 +12.7）。新信息：BEHAVE 上**跟踪朝向反而比旋转=I 差 3.3**（BEHAVE 跟踪 IoU 0.34–0.79），榜上没测过 R=I + MoGe 深度 → 值得一次榜单探针。
+  汇总：验证集在 6 个已知方向里对了 5 个（关键点精修、深度 ICP、锚定、中位数深度；错的是 FlowHMR 长片段漂移）→ **可以作为提交前的筛选器**。
+- `2026-10-19 08:23 PDT` ⭐ **官方 CARI4D+CoCoNet 在 BEHAVE 上用真值打分**（σ3）：**CD-H 13.64**（我们 raw 13.14 / FlowHMR 18.85），CD-O 均值 287 —— 5 段很好（21–51 cm，我们 33–70），3 段灾难（boxmedium 233、boxsmall 253、plasticcontainer 1647：物体丢失后被放到几米外）。
+  灾难可无真值识别：计分帧里"z<0.5 m 或离骨盆 >2 m 或偏离 31 帧中值 >0.5 m"的比例（好段 0%，坏段 24–61%）。新增 `src/cari4d_repair.py`：坏帧插值，坏帧 >15% 整集回退到我们的物体。
+  BEHAVE：修补后 **CD-O 37.95**（我们最好 47.97，−10 cm），CD-H 13.64。
+  赛题上同一规则：30 集均用官方物体（ep2 11 帧、ep7 7 帧、ep18 28 帧插值），无整集回退 → `sub_cari4d_cc_fix`，推离 + 门控中（6 进程，GPU1/2）。
+- `09:30` **官方 CARI4D（含 CoCoNet）在 8 个 BEHAVE 验证 clip 上打分**（`_cc_s3_pen` 配方：官方 01–07 + 我们的 σ3 平滑 + 推离）。完全隔离在 `work/behave_root`（runs → `work/behave_root/work/v2d_official/runs`，state → `work/behave_root/state/cari4d`；只有代码/权重/shim 是符号链接）；物体 mesh 用 `work/behave_root/work/meshes`（BEHAVE 没有 meshes_v2）。GPU1/2，每 clip 450 帧约 30 min，8/8 无失败。
+  `python3 src/score_behave_root.py work/sub_o_cc_s3_pen`：MEAN **CD-H 13.64 / CD-O 298.4 / ACC-H 0.475 / ACC-O 0.562 / PEN 0.000**；不推离的 `sub_o_cc_s3`：CD-H 13.64 / CD-O 287.0 / ACC-O 0.500 / PEN 0.0054。
+  CD-O 均值被 3 个 clip 毁掉：plasticcontainer 1660 cm、boxsmall 260、boxmedium 252——FoundationPose 在这些小物体上把深度放到 5–28 m（ep2 中位 17.5 m），CoCoNet 拉回一部分（12 m）仍远离人体（2.3 m）。其余 5 clip CD-O 21–65（推离版均值 43.0；不推离 32.7），推离在 BEHAVE 上让 CD-O 变差 10 cm。
+  对照（同 scorer）：我们 raw body CD-H 13.14 / FlowHMR 18.85；最好物体 CD-O 47.97。→ 人体与 raw SAM3D 持平（略差 0.5），物体中位数情形更好但长尾灾难；按现状不建议用它占一次榜单提交。
+- `2026-10-19 08:50 PDT` 子代理补充（BEHAVE，官方 _cc_s3_pen 配方）：**推离在 BEHAVE 上让 CD-O 变差约 10 cm**（5 个正常段：不推离 32.7 → 推离 43.0），换来 PEN 0（不推离 0.0054）。
+  → 赛题上准备两个候选：`sub_cari4d_cc_fix`（不推离，PEN≈0.005）和 `sub_cari4d_cc_fix_pen`（推离，PEN 0）。若主办方确认"各指标取最好"，应交不推离版（榜上 PEN 0 已保留）；若只认单次提交，PEN 从并列第 1 掉到 ~第 18，需权衡。
+- `2026-10-19 09:00 PDT` 小时汇总：修补版官方复现推离 27/30（最后一个 worker 跑 ep15/21/27，ep9 推离最大 0.72 m），门控随后。榜单不变（综合第 10，名次和 63）。提交暂停中，两个候选（推离/不推离）待规则确认。
+- `2026-10-19 09:40 PDT` ✅ **提交候选就绪**：`sub_cari4d_cc_fix_pen`（官方 CARI4D+CoCoNet、σ3、坏帧修补、推离）——PEN 0/9877 PASS、ACC-O 代理 0.128/0.52（ep15/ep2 超线）、ACC-H 代理 0.090、px 8.4。
+  备选 `sub_cari4d_cc_fix`（不推离，BEHAVE 上 CD-O 约好 10 cm，PEN≈0.005）。BEHAVE 预期：CD-H ≈ raw 水平、CD-O 比 sub_v6 好约 10 cm。等提交授权。
+
+## 2026-10-19 15:21 PDT — BEHAVE：物体平移加大平滑（advice §5 第 4 步，本地验证，未提交）
+- 新脚本 `src/smooth_obj_t.py`：每个计分段内对 object_translation 额外 Gaussian σ。基线 = BEHAVE 修补版官方复现 `sub_o_cc_fix15`（不推离）。
+- 结果（8 段均值，CD-H 不变 13.64）：
+  | σ | CD-O | ACC-O | PEN |
+  |---|---|---|---|
+  | 基线(σ3) | 37.95 | 0.458 | 0.0049 |
+  | 6 | **37.21** | 0.363 | 0.0048 |
+  | 12 | 37.36 | **0.348** | 0.0039 |
+  | 24 | 42.51 | 0.351 | 0.0026 |
+- 结论：σ6 同时改善 CD-O（−0.7）和 ACC-O（−21%）；σ12 的 ACC-O 只再好一点点，σ24 的 CD-O 明显变差。主要收益来自 boxmedium（ACC-O 1.27→0.71）。
+- 已在挑战集上生成 `work/sub_cari4d_cc_fix_t6`（σ6），正在后台推离 → `sub_cari4d_cc_fix_t6_pen` + 门控（logs/ccfix_t6_pen.log）。
+- 下一步：比较 t6_pen 和 fix_pen 的 ACC-O 代理；若更好，就作为首个提交候选替换 fix_pen（仍等授权）。
+
+## 2026-10-19 16:58 PDT — 挑战集：平滑 + 推离组合，新首选候选 `sub_cari4d_cc_fix_t6_pen_t6_pen`
+- 流程：sub_cari4d_cc_fix →(σ6) t6 →推离 t6_pen →(σ6) t6_pen_t6 →再推离 t6_pen_t6_pen。
+- ACC-O 代理（acc_gate，均值/最大）：fix 0.074/0.196；t6 0.045/0.137；fix_pen（旧候选）0.128/0.516 FAIL；t6_pen 0.108/0.556 FAIL；t6_pen_t6 0.055/0.206 但 PEN 78/9877 帧、最深 0.95 cm FAIL；**t6_pen_t6_pen 0.056/0.206 PASS，PEN 0/9877 PASS**。
+- ACC-H 0.090/0.205、px 8.4/11.8 与旧候选相同（人体没变）。
+- 推离引入的抖动（ep15 推离最远 66 cm）是旧候选 ACC-O 代理差的主要原因；推离后再平滑、再推一次残余就能去掉。
+- 结论：首个提交候选改为 `work/sub_cari4d_cc_fix_t6_pen_t6_pen`（仍等授权）。BEHAVE 依据：σ6 让 CD-O −0.7、ACC-O −21%。
+
+## 2026-10-19 17:44 PDT — BEHAVE：推离代价 & PEN 取舍
+- BEHAVE 上同流程：t6（不推）CD-O 37.21 / ACC-O 0.363 / PEN 0.0048；t6_pen 45.24 / 0.426 / 0；t6_pen_t6_pen 45.59 / **0.380** / 0。→ 推离让 CD-O 多约 8 cm；二次平滑把 ACC-O 拉回大半。
+- 线上 PEN 分布（34 队）：7 队 0.0，其后 0.0001、0.0001、0.0002…0.0042，再往后 0.0097+。线上 CD-O：我们 41.70 排第 23；若 −8 cm 到约 33.7，约排第 20（+3 名）。
+- 不推离的话，PEN 会从并列第 1 掉到大概第 8–20 名（具体取决于线上 PEN 的单位，还没核对），所以名次净收益估计 ≤0。**维持推离版作为首个提交**：`sub_cari4d_cc_fix_t6_pen_t6_pen`。

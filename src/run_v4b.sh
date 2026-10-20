@@ -4,4 +4,4 @@ bash src/run_export_parallel.sh work/sub_v4b 6 --body work/body_depth --body-sou
 python3 src/body_proxy.py work/sub_track2 work/sub_v4b 2>&1 | grep RESULT
 python3 src/acc_gate.py work/sub_v4b 2>&1 | grep RESULT
 python3 src/pen_gate.py work/sub_v4b cuda:1 2>&1 | grep RESULT
-echo "=== DONE $(TZ=Asia/Shanghai date +%H:%M)"
+echo "=== DONE $(TZ=America/Los_Angeles date +%H:%M)"

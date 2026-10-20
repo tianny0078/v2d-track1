@@ -9,4 +9,4 @@ for ((w=0; w<N; w++)); do
   python3 src/export_episodes.py --out "$OUT" --eps $EPS "$@" > "logs/export_$(basename $OUT)_w$w.log" 2>&1 &
 done
 wait
-echo "=== all workers done $(TZ=Asia/Shanghai date +%H:%M): $(ls $OUT | wc -l) files"
+echo "=== all workers done $(TZ=America/Los_Angeles date +%H:%M): $(ls $OUT | wc -l) files"

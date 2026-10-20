@@ -16,3 +16,10 @@ work/v2d_latest/
 work/sam3d/
 work/sub_*/
 work/*kaggle-receipt.json
+
+# BEHAVE data/preds (non-commercial license, no redistribution) and official-repro intermediates
+work/behave/
+work/behave_gt/
+work/behave_pred/
+work/behave_root/
+work/v2d_official/

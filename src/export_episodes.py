@@ -120,6 +120,8 @@ THIN_FILL = 0.2
 CONTACT_ANCHOR = False
 PUSH_MODE = "centroid"
 OBJ_SIZE = "consensus"
+OBJ_DEPTH_SCALE = 1.0
+THIN_RULE = True
 OBJ_NAME = ""
 PUSH_ROUNDS = 4
 
@@ -182,13 +184,13 @@ def _place_object(ep, camera, pose, scales, shape, fids, mesh, sigma, T, R_seq=N
             iu = np.clip(vu.astype(int), 0, W - 1); iv = np.clip(vv.astype(int), 0, pm.shape[0] - 1)
             inside = pm[iv, iu] > 0
             z_person = np.percentile(vz[inside], 35) if inside.sum() > 100 else np.percentile(vz, 35)
-            z_moge[t] = z_person * do / dp
+            z_moge[t] = z_person * do / dp * OBJ_DEPTH_SCALE
         # THIN objects (hula hoop: mask fill ratio 0.12 vs 0.8 for solid ones) let the background
         # through the mask, and MoGe then reports the wall behind the ring (ep1: ratio 1.5 while
         # the hoop is held up, object 1.5 m behind the hand). The scored span is the contact span,
         # so for a thin object the nearest hand's depth is the better estimate.
         thin = np.isfinite(fill) & (fill < THIN_FILL)
-        if thin.sum() > 0.5 * np.isfinite(fill).sum():
+        if THIN_RULE and thin.sum() > 0.5 * np.isfinite(fill).sum():
             z_moge[:] = zh_hand
             print(f"  ep{ep} thin object (median fill {np.nanmedian(fill):.2f} < {THIN_FILL}): depth anchored to the nearest hand")
         if CONTACT_ANCHOR:
@@ -519,6 +521,8 @@ def main() -> None:
     ap.add_argument("--obj-depth-stat", choices=["median", "p20"], default="p20")
     ap.add_argument("--mesh-dir", default="work/meshes", help="work/meshes_v2 has the re-run meshes with layout poses")
     ap.add_argument("--obj-rot", choices=["identity", "layout", "track"], default="identity")
+    ap.add_argument("--obj-depth-scale", type=float, default=1.0, help="multiply the MoGe-ratio object depth (probe: nearest-surface p20 beat the median by 4.6 cm on CD-O, suggesting our depths are too far)")
+    ap.add_argument("--no-thin-rule", action="store_true", help="disable hand-depth anchoring for thin objects (hoops)")
     ap.add_argument("--obj-size", choices=["consensus", "moge"], default="consensus", help="object metric size: 3-episode hand-depth consensus or from the MoGe placement depth")
     ap.add_argument("--push", choices=["centroid", "closest"], default="centroid", help="push-out direction: hand->centroid (old) or minimal escape to the closest surface")
     ap.add_argument("--contact-anchor", action="store_true", help="shift MoGe depth so contact frames put the object at the hand")
@@ -533,8 +537,8 @@ def main() -> None:
                          "filtering beats in-loop penalties here, which saturate: w_jacc=5 left "
                          "|a_pred| at 2.8x while driving reprojection error to 66 px.")
     a = ap.parse_args()
-    global OBJ_DEPTH, OBJ_DEPTH_COL, CONTACT_ANCHOR, PUSH_MODE, OBJ_SIZE
-    OBJ_DEPTH = a.obj_depth; OBJ_DEPTH_COL = 0 if a.obj_depth_stat == "median" else 1; CONTACT_ANCHOR = a.contact_anchor; PUSH_MODE = a.push; OBJ_SIZE = a.obj_size
+    global OBJ_DEPTH, OBJ_DEPTH_COL, CONTACT_ANCHOR, PUSH_MODE, OBJ_SIZE, OBJ_DEPTH_SCALE, THIN_RULE
+    OBJ_DEPTH = a.obj_depth; OBJ_DEPTH_COL = 0 if a.obj_depth_stat == "median" else 1; CONTACT_ANCHOR = a.contact_anchor; PUSH_MODE = a.push; OBJ_SIZE = a.obj_size; OBJ_DEPTH_SCALE = a.obj_depth_scale; THIN_RULE = not a.no_thin_rule
     a.out.mkdir(parents=True, exist_ok=True)
 
     eps_len = {json.loads(l)["episode_index"]: json.loads(l)["length"]

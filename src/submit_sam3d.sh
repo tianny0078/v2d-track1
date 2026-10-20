@@ -11,7 +11,7 @@ python3 src/score_local.py --episodes "work/$TAG" 2>&1 | tail -1
 git add -A
 git -c user.email=tianny007@gmail.com -c user.name=tianny0078 commit -q -m "$MSG
 
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01TMqTPD4NdJoeL2zDKuuhoB" || true
 timeout 120 git push -q origin main
 SHA=$(git rev-parse HEAD); echo "commit $SHA"

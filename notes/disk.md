@@ -105,3 +105,13 @@
 - 2026-10-18 21:53 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 181G；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。
 - 2026-10-19 03:48 定时清理：释放 0.01 GB（pip 缓存、__pycache__）；根分区可用 170G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；sub_v6/sub_v7 加入 KEEP。
 - 2026-10-19 03:53 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 170G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。
+- 2026-10-18 22:00 PDT 定时清理：释放 0.28 GB（pip 缓存、27 个 __pycache__）；根分区可用 153G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；sub_cari4d/_s3 加入 KEEP。
+- 2026-10-18 22:08 PDT 用户授权后 `docker builder prune -f`：释放 **126.9 GB**，根分区可用 153 → 265 GB。未引用镜像 221 GB 仍待确认归属。
+- 2026-10-19 00:48 PDT 定时清理：释放 0.01 GB（pip 缓存、53 个 __pycache__）；根分区可用 231G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；KEEP 加入 sub_cari4d_cc/_cc_s3/_cc_pen。
+- 2026-10-19 00:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 231G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。
+- 2026-10-19 06:48 PDT 定时清理：释放 0.01 GB（pip 缓存、31 个 __pycache__）；根分区可用 220G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；我们最大的目录：12G	work/behave_root 39G	work/v2d_official 
+- 2026-10-19 06:53 PDT 定时清理：释放 0.01 GB（pip 缓存、18 个 __pycache__）；根分区可用 212G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）。
+- 2026-10-19 12:48 PDT 定时清理：释放 0.01 GB（pip 缓存、__pycache__）；根分区可用 224G（一小时前 241G，减少的部分不是我们的进程写的）；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 20G（未删）；我们最大的目录：39G work/v2d_official、15G work/models、7.0G work/behave_root。
+- 2026-10-19 12:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 224G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-19 18:48 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 896G（别人释放了约 650 GB，不是我们）；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-19 18:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 896G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。

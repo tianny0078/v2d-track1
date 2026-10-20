@@ -137,7 +137,9 @@ def submissions() -> list[dict]:
         c = [x.strip() for x in ln.strip("|").split("|")]
         if len(c) < 8:
             continue
-        num = lambda v: None if v in ("", "-", "pending") else float(v)
+        # cells may carry markdown emphasis or a verdict mark ("**17.86488**", "22.86308 ❌")
+        import re as _re
+        num = lambda v: None if _re.sub(r"[^0-9.\-]", "", v) in ("", "-") else float(_re.sub(r"[^0-9.\-]", "", v))
         try:
             out.append(dict(ts=c[0], commit=c[1], config=c[2], cd_h=num(c[3]), cd_o=num(c[4]),
                             acc_h=num(c[5]), acc_o=num(c[6]), pen=num(c[7])))

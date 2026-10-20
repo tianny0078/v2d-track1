@@ -1,12 +1,12 @@
 {
- "fetched_at": "2026-10-18T20:00:23+00:00",
+ "fetched_at": "2026-10-20T02:00:21+00:00",
  "metrics": {
   "CD-H": {
-   "teams": 28,
-   "rank": 24,
+   "teams": 34,
+   "rank": 30,
    "score": 17.72016,
    "best": 13.27666,
-   "third": 14.01671,
+   "third": 13.97392,
    "median": 15.41265,
    "worst": 73.64771,
    "top": [
@@ -20,7 +20,7 @@
     },
     {
      "team": "RobotPI Lab",
-     "score": 14.01671
+     "score": 13.97392
     },
     {
      "team": "BarcelonaHoneyCod",
@@ -33,44 +33,44 @@
    ]
   },
   "CD-O": {
-   "teams": 28,
-   "rank": 20,
+   "teams": 34,
+   "rank": 23,
    "score": 41.7042,
-   "best": 17.32608,
-   "third": 18.74104,
-   "median": 29.7701,
-   "worst": 173.355,
+   "best": 17.10165,
+   "third": 18.73858,
+   "median": 26.6458,
+   "worst": 187.92225,
    "top": [
     {
      "team": "EviisKitson",
-     "score": 17.32608
+     "score": 17.10165
     },
     {
      "team": "xpz666",
-     "score": 18.54107
+     "score": 18.20989
+    },
+    {
+     "team": "Swithinraj ",
+     "score": 18.73858
     },
     {
      "team": "RobotPI Lab",
      "score": 18.74104
     },
     {
-     "team": "Swithinraj ",
-     "score": 18.76641
-    },
-    {
-     "team": "Lodestar",
-     "score": 19.5252
+     "team": "domoarigato",
+     "score": 19.06667
     }
    ]
   },
   "ACC-H": {
-   "teams": 28,
-   "rank": 6,
+   "teams": 34,
+   "rank": 7,
    "score": 0.14019,
    "best": 0.13724,
-   "third": 0.13809,
-   "median": 0.17446,
-   "worst": 2.49281,
+   "third": 0.13806,
+   "median": 0.16955,
+   "worst": 1.97387,
    "top": [
     {
      "team": "EviisKitson",
@@ -82,26 +82,26 @@
     },
     {
      "team": "RobotPI Lab",
-     "score": 0.13809
+     "score": 0.13806
     },
     {
      "team": "SNU CVLAB",
      "score": 0.13826
     },
     {
-     "team": "Swithinraj ",
-     "score": 0.13955
+     "team": "Mochii",
+     "score": 0.13856
     }
    ]
   },
   "ACC-O": {
-   "teams": 28,
+   "teams": 34,
    "rank": 7,
    "score": 0.07429,
    "best": 0.07075,
    "third": 0.07109,
-   "median": 0.12737,
-   "worst": 0.99505,
+   "median": 0.10892,
+   "worst": 2.72624,
    "top": [
     {
      "team": "Lodestar",
@@ -116,23 +116,23 @@
      "score": 0.07109
     },
     {
-     "team": "Lattice Studios",
-     "score": 0.07136
+     "team": "Swithinraj ",
+     "score": 0.07131
     },
     {
-     "team": "Swithinraj ",
-     "score": 0.07144
+     "team": "Lattice Studios",
+     "score": 0.07136
     }
    ]
   },
   "PEN": {
-   "teams": 28,
+   "teams": 34,
    "rank": 2,
    "score": 0.0,
    "best": 0.0,
    "third": 0.0,
-   "median": 0.00149,
-   "worst": 0.1007,
+   "median": 0.0014,
+   "worst": 0.08886,
    "top": [
     {
      "team": "QY Lin",
@@ -157,5 +157,927 @@
    ]
   }
  },
- "rank_sum": 59
+ "rank_sum": 69,
+ "overall": [
+  {
+   "team": "EviisKitson",
+   "rank_sum": 14,
+   "metrics": {
+    "CD-H": {
+     "rank": 1,
+     "score": 13.27666
+    },
+    "CD-O": {
+     "rank": 1,
+     "score": 17.10165
+    },
+    "ACC-H": {
+     "rank": 1,
+     "score": 0.13724
+    },
+    "ACC-O": {
+     "rank": 3,
+     "score": 0.07109
+    },
+    "PEN": {
+     "rank": 8,
+     "score": 5e-05
+    }
+   },
+   "place": 1
+  },
+  {
+   "team": "RobotPI Lab",
+   "rank_sum": 18,
+   "metrics": {
+    "CD-H": {
+     "rank": 3,
+     "score": 13.97392
+    },
+    "CD-O": {
+     "rank": 4,
+     "score": 18.74104
+    },
+    "ACC-H": {
+     "rank": 3,
+     "score": 0.13806
+    },
+    "ACC-O": {
+     "rank": 2,
+     "score": 0.07083
+    },
+    "PEN": {
+     "rank": 6,
+     "score": 2e-05
+    }
+   },
+   "place": 2
+  },
+  {
+   "team": "Swithinraj ",
+   "rank_sum": 20,
+   "metrics": {
+    "CD-H": {
+     "rank": 6,
+     "score": 14.65534
+    },
+    "CD-O": {
+     "rank": 3,
+     "score": 18.73858
+    },
+    "ACC-H": {
+     "rank": 6,
+     "score": 0.13955
+    },
+    "ACC-O": {
+     "rank": 4,
+     "score": 0.07131
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 3
+  },
+  {
+   "team": "Lodestar",
+   "rank_sum": 26,
+   "metrics": {
+    "CD-H": {
+     "rank": 2,
+     "score": 13.36778
+    },
+    "CD-O": {
+     "rank": 6,
+     "score": 19.5252
+    },
+    "ACC-H": {
+     "rank": 9,
+     "score": 0.14381
+    },
+    "ACC-O": {
+     "rank": 1,
+     "score": 0.07075
+    },
+    "PEN": {
+     "rank": 8,
+     "score": 5e-05
+    }
+   },
+   "place": 4
+  },
+  {
+   "team": "BarcelonaHoneyCod",
+   "rank_sum": 49,
+   "metrics": {
+    "CD-H": {
+     "rank": 4,
+     "score": 14.18596
+    },
+    "CD-O": {
+     "rank": 17,
+     "score": 26.63557
+    },
+    "ACC-H": {
+     "rank": 2,
+     "score": 0.13758
+    },
+    "ACC-O": {
+     "rank": 10,
+     "score": 0.07514
+    },
+    "PEN": {
+     "rank": 16,
+     "score": 0.00128
+    }
+   },
+   "place": 5
+  },
+  {
+   "team": "Mochii",
+   "rank_sum": 54,
+   "metrics": {
+    "CD-H": {
+     "rank": 14,
+     "score": 15.16723
+    },
+    "CD-O": {
+     "rank": 12,
+     "score": 24.82179
+    },
+    "ACC-H": {
+     "rank": 5,
+     "score": 0.13856
+    },
+    "ACC-O": {
+     "rank": 9,
+     "score": 0.075
+    },
+    "PEN": {
+     "rank": 14,
+     "score": 0.00065
+    }
+   },
+   "place": 6
+  },
+  {
+   "team": "Lattice Studios",
+   "rank_sum": 57,
+   "metrics": {
+    "CD-H": {
+     "rank": 10,
+     "score": 14.98258
+    },
+    "CD-O": {
+     "rank": 13,
+     "score": 25.03212
+    },
+    "ACC-H": {
+     "rank": 8,
+     "score": 0.14174
+    },
+    "ACC-O": {
+     "rank": 5,
+     "score": 0.07136
+    },
+    "PEN": {
+     "rank": 21,
+     "score": 0.00151
+    }
+   },
+   "place": 7
+  },
+  {
+   "team": "domoarigato",
+   "rank_sum": 58,
+   "metrics": {
+    "CD-H": {
+     "rank": 7,
+     "score": 14.85663
+    },
+    "CD-O": {
+     "rank": 5,
+     "score": 19.06667
+    },
+    "ACC-H": {
+     "rank": 15,
+     "score": 0.15141
+    },
+    "ACC-O": {
+     "rank": 12,
+     "score": 0.07825
+    },
+    "PEN": {
+     "rank": 19,
+     "score": 0.00143
+    }
+   },
+   "place": 8
+  },
+  {
+   "team": "QY Lin",
+   "rank_sum": 61,
+   "metrics": {
+    "CD-H": {
+     "rank": 13,
+     "score": 15.12774
+    },
+    "CD-O": {
+     "rank": 14,
+     "score": 25.3529
+    },
+    "ACC-H": {
+     "rank": 14,
+     "score": 0.15089
+    },
+    "ACC-O": {
+     "rank": 19,
+     "score": 0.11597
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 9
+  },
+  {
+   "team": "sv1105",
+   "rank_sum": 64,
+   "metrics": {
+    "CD-H": {
+     "rank": 9,
+     "score": 14.88584
+    },
+    "CD-O": {
+     "rank": 7,
+     "score": 23.05002
+    },
+    "ACC-H": {
+     "rank": 19,
+     "score": 0.1719
+    },
+    "ACC-O": {
+     "rank": 14,
+     "score": 0.08916
+    },
+    "PEN": {
+     "rank": 15,
+     "score": 0.00102
+    }
+   },
+   "place": 10
+  },
+  {
+   "team": "Tony",
+   "rank_sum": 67,
+   "metrics": {
+    "CD-H": {
+     "rank": 30,
+     "score": 17.72016
+    },
+    "CD-O": {
+     "rank": 23,
+     "score": 41.7042
+    },
+    "ACC-H": {
+     "rank": 7,
+     "score": 0.14019
+    },
+    "ACC-O": {
+     "rank": 6,
+     "score": 0.07429
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 11
+  },
+  {
+   "team": "ByeByeHelloHaHaHa",
+   "rank_sum": 75,
+   "metrics": {
+    "CD-H": {
+     "rank": 5,
+     "score": 14.20399
+    },
+    "CD-O": {
+     "rank": 19,
+     "score": 31.40578
+    },
+    "ACC-H": {
+     "rank": 18,
+     "score": 0.16955
+    },
+    "ACC-O": {
+     "rank": 20,
+     "score": 0.11915
+    },
+    "PEN": {
+     "rank": 13,
+     "score": 0.00058
+    }
+   },
+   "place": 12
+  },
+  {
+   "team": "Marcell",
+   "rank_sum": 79,
+   "metrics": {
+    "CD-H": {
+     "rank": 23,
+     "score": 15.56281
+    },
+    "CD-O": {
+     "rank": 22,
+     "score": 40.43128
+    },
+    "ACC-H": {
+     "rank": 16,
+     "score": 0.15333
+    },
+    "ACC-O": {
+     "rank": 6,
+     "score": 0.07429
+    },
+    "PEN": {
+     "rank": 12,
+     "score": 0.00053
+    }
+   },
+   "place": 13
+  },
+  {
+   "team": "Xueyi Wang (FF)",
+   "rank_sum": 80,
+   "metrics": {
+    "CD-H": {
+     "rank": 17,
+     "score": 15.19253
+    },
+    "CD-O": {
+     "rank": 18,
+     "score": 26.6458
+    },
+    "ACC-H": {
+     "rank": 12,
+     "score": 0.14854
+    },
+    "ACC-O": {
+     "rank": 11,
+     "score": 0.0776
+    },
+    "PEN": {
+     "rank": 22,
+     "score": 0.00204
+    }
+   },
+   "place": 14
+  },
+  {
+   "team": "Furqan Zaheer",
+   "rank_sum": 84,
+   "metrics": {
+    "CD-H": {
+     "rank": 34,
+     "score": 73.64771
+    },
+    "CD-O": {
+     "rank": 33,
+     "score": 169.91766
+    },
+    "ACC-H": {
+     "rank": 10,
+     "score": 0.14528
+    },
+    "ACC-O": {
+     "rank": 6,
+     "score": 0.07429
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 15
+  },
+  {
+   "team": "SNU CVLAB",
+   "rank_sum": 87,
+   "metrics": {
+    "CD-H": {
+     "rank": 19,
+     "score": 15.4285
+    },
+    "CD-O": {
+     "rank": 8,
+     "score": 23.13746
+    },
+    "ACC-H": {
+     "rank": 4,
+     "score": 0.13826
+    },
+    "ACC-O": {
+     "rank": 25,
+     "score": 0.24266
+    },
+    "PEN": {
+     "rank": 31,
+     "score": 0.01011
+    }
+   },
+   "place": 16
+  },
+  {
+   "team": "xpz666",
+   "rank_sum": 93,
+   "metrics": {
+    "CD-H": {
+     "rank": 22,
+     "score": 15.51196
+    },
+    "CD-O": {
+     "rank": 2,
+     "score": 18.20989
+    },
+    "ACC-H": {
+     "rank": 28,
+     "score": 0.94279
+    },
+    "ACC-O": {
+     "rank": 31,
+     "score": 0.74298
+    },
+    "PEN": {
+     "rank": 10,
+     "score": 0.00019
+    }
+   },
+   "place": 17
+  },
+  {
+   "team": "Open4D",
+   "rank_sum": 97,
+   "metrics": {
+    "CD-H": {
+     "rank": 18,
+     "score": 15.41265
+    },
+    "CD-O": {
+     "rank": 11,
+     "score": 24.5668
+    },
+    "ACC-H": {
+     "rank": 21,
+     "score": 0.17835
+    },
+    "ACC-O": {
+     "rank": 22,
+     "score": 0.19278
+    },
+    "PEN": {
+     "rank": 25,
+     "score": 0.00286
+    }
+   },
+   "place": 18
+  },
+  {
+   "team": "Kelly To the H",
+   "rank_sum": 99,
+   "metrics": {
+    "CD-H": {
+     "rank": 32,
+     "score": 41.33827
+    },
+    "CD-O": {
+     "rank": 31,
+     "score": 103.31406
+    },
+    "ACC-H": {
+     "rank": 22,
+     "score": 0.17963
+    },
+    "ACC-O": {
+     "rank": 13,
+     "score": 0.08356
+    },
+    "PEN": {
+     "rank": 1,
+     "score": 0.0
+    }
+   },
+   "place": 19
+  },
+  {
+   "team": "avinsingh",
+   "rank_sum": 101,
+   "metrics": {
+    "CD-H": {
+     "rank": 29,
+     "score": 17.06481
+    },
+    "CD-O": {
+     "rank": 15,
+     "score": 25.42707
+    },
+    "ACC-H": {
+     "rank": 11,
+     "score": 0.14716
+    },
+    "ACC-O": {
+     "rank": 17,
+     "score": 0.10799
+    },
+    "PEN": {
+     "rank": 29,
+     "score": 0.00462
+    }
+   },
+   "place": 20
+  },
+  {
+   "team": "Chivatam",
+   "rank_sum": 104,
+   "metrics": {
+    "CD-H": {
+     "rank": 12,
+     "score": 15.11194
+    },
+    "CD-O": {
+     "rank": 21,
+     "score": 38.43505
+    },
+    "ACC-H": {
+     "rank": 23,
+     "score": 0.25584
+    },
+    "ACC-O": {
+     "rank": 24,
+     "score": 0.22094
+    },
+    "PEN": {
+     "rank": 24,
+     "score": 0.00239
+    }
+   },
+   "place": 21
+  },
+  {
+   "team": "Javier Medel, MSc.",
+   "rank_sum": 105,
+   "metrics": {
+    "CD-H": {
+     "rank": 11,
+     "score": 14.99887
+    },
+    "CD-O": {
+     "rank": 10,
+     "score": 23.48324
+    },
+    "ACC-H": {
+     "rank": 32,
+     "score": 1.15894
+    },
+    "ACC-O": {
+     "rank": 29,
+     "score": 0.71908
+    },
+    "PEN": {
+     "rank": 23,
+     "score": 0.00213
+    }
+   },
+   "place": 22
+  },
+  {
+   "team": "longbot",
+   "rank_sum": 110,
+   "metrics": {
+    "CD-H": {
+     "rank": 21,
+     "score": 15.44857
+    },
+    "CD-O": {
+     "rank": 16,
+     "score": 25.56516
+    },
+    "ACC-H": {
+     "rank": 24,
+     "score": 0.27955
+    },
+    "ACC-O": {
+     "rank": 23,
+     "score": 0.21963
+    },
+    "PEN": {
+     "rank": 26,
+     "score": 0.00326
+    }
+   },
+   "place": 23
+  },
+  {
+   "team": "Punya Malaiya",
+   "rank_sum": 110,
+   "metrics": {
+    "CD-H": {
+     "rank": 33,
+     "score": 42.31736
+    },
+    "CD-O": {
+     "rank": 28,
+     "score": 78.69475
+    },
+    "ACC-H": {
+     "rank": 13,
+     "score": 0.15
+    },
+    "ACC-O": {
+     "rank": 16,
+     "score": 0.09461
+    },
+    "PEN": {
+     "rank": 20,
+     "score": 0.00149
+    }
+   },
+   "place": 24
+  },
+  {
+   "team": "Ankita Bajaj",
+   "rank_sum": 116,
+   "metrics": {
+    "CD-H": {
+     "rank": 15,
+     "score": 15.17688
+    },
+    "CD-O": {
+     "rank": 30,
+     "score": 101.64738
+    },
+    "ACC-H": {
+     "rank": 31,
+     "score": 0.98694
+    },
+    "ACC-O": {
+     "rank": 34,
+     "score": 2.72624
+    },
+    "PEN": {
+     "rank": 6,
+     "score": 2e-05
+    }
+   },
+   "place": 25
+  },
+  {
+   "team": "MostlyKIGuess",
+   "rank_sum": 117,
+   "metrics": {
+    "CD-H": {
+     "rank": 28,
+     "score": 16.31787
+    },
+    "CD-O": {
+     "rank": 25,
+     "score": 55.95892
+    },
+    "ACC-H": {
+     "rank": 17,
+     "score": 0.16864
+    },
+    "ACC-O": {
+     "rank": 15,
+     "score": 0.09201
+    },
+    "PEN": {
+     "rank": 32,
+     "score": 0.01377
+    }
+   },
+   "place": 26
+  },
+  {
+   "team": "AI_CENTER",
+   "rank_sum": 121,
+   "metrics": {
+    "CD-H": {
+     "rank": 26,
+     "score": 15.71611
+    },
+    "CD-O": {
+     "rank": 20,
+     "score": 37.42007
+    },
+    "ACC-H": {
+     "rank": 20,
+     "score": 0.17446
+    },
+    "ACC-O": {
+     "rank": 21,
+     "score": 0.12737
+    },
+    "PEN": {
+     "rank": 34,
+     "score": 0.08886
+    }
+   },
+   "place": 27
+  },
+  {
+   "team": "xiaopai7788",
+   "rank_sum": 121,
+   "metrics": {
+    "CD-H": {
+     "rank": 27,
+     "score": 15.90236
+    },
+    "CD-O": {
+     "rank": 24,
+     "score": 49.19655
+    },
+    "ACC-H": {
+     "rank": 25,
+     "score": 0.50131
+    },
+    "ACC-O": {
+     "rank": 28,
+     "score": 0.53201
+    },
+    "PEN": {
+     "rank": 17,
+     "score": 0.00135
+    }
+   },
+   "place": 28
+  },
+  {
+   "team": "TheTensorGeek",
+   "rank_sum": 122,
+   "metrics": {
+    "CD-H": {
+     "rank": 20,
+     "score": 15.44549
+    },
+    "CD-O": {
+     "rank": 29,
+     "score": 84.22687
+    },
+    "ACC-H": {
+     "rank": 30,
+     "score": 0.97204
+    },
+    "ACC-O": {
+     "rank": 32,
+     "score": 0.74841
+    },
+    "PEN": {
+     "rank": 11,
+     "score": 0.0003
+    }
+   },
+   "place": 29
+  },
+  {
+   "team": "fw095",
+   "rank_sum": 124,
+   "metrics": {
+    "CD-H": {
+     "rank": 25,
+     "score": 15.5826
+    },
+    "CD-O": {
+     "rank": 34,
+     "score": 187.92225
+    },
+    "ACC-H": {
+     "rank": 29,
+     "score": 0.9666
+    },
+    "ACC-O": {
+     "rank": 18,
+     "score": 0.10892
+    },
+    "PEN": {
+     "rank": 18,
+     "score": 0.0014
+    }
+   },
+   "place": 30
+  },
+  {
+   "team": "Null Walker",
+   "rank_sum": 125,
+   "metrics": {
+    "CD-H": {
+     "rank": 16,
+     "score": 15.19204
+    },
+    "CD-O": {
+     "rank": 27,
+     "score": 73.37352
+    },
+    "ACC-H": {
+     "rank": 26,
+     "score": 0.87854
+    },
+    "ACC-O": {
+     "rank": 26,
+     "score": 0.26912
+    },
+    "PEN": {
+     "rank": 30,
+     "score": 0.00975
+    }
+   },
+   "place": 31
+  },
+  {
+   "team": "CARI4D Basline",
+   "rank_sum": 125,
+   "metrics": {
+    "CD-H": {
+     "rank": 24,
+     "score": 15.57527
+    },
+    "CD-O": {
+     "rank": 9,
+     "score": 23.16246
+    },
+    "ACC-H": {
+     "rank": 34,
+     "score": 1.97387
+    },
+    "ACC-O": {
+     "rank": 30,
+     "score": 0.72622
+    },
+    "PEN": {
+     "rank": 28,
+     "score": 0.00423
+    }
+   },
+   "place": 32
+  },
+  {
+   "team": "um",
+   "rank_sum": 133,
+   "metrics": {
+    "CD-H": {
+     "rank": 8,
+     "score": 14.85738
+    },
+    "CD-O": {
+     "rank": 32,
+     "score": 105.26281
+    },
+    "ACC-H": {
+     "rank": 27,
+     "score": 0.89932
+    },
+    "ACC-O": {
+     "rank": 33,
+     "score": 0.99505
+    },
+    "PEN": {
+     "rank": 33,
+     "score": 0.0702
+    }
+   },
+   "place": 33
+  },
+  {
+   "team": "World Reward",
+   "rank_sum": 144,
+   "metrics": {
+    "CD-H": {
+     "rank": 31,
+     "score": 27.99416
+    },
+    "CD-O": {
+     "rank": 26,
+     "score": 68.03361
+    },
+    "ACC-H": {
+     "rank": 33,
+     "score": 1.64535
+    },
+    "ACC-O": {
+     "rank": 27,
+     "score": 0.50183
+    },
+    "PEN": {
+     "rank": 27,
+     "score": 0.00384
+    }
+   },
+   "place": 34
+  }
+ ],
+ "rank_sum_tied": 67,
+ "place": 11
 }
