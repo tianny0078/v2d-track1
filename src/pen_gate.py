@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "work/kit/v2d_submission_kit"))
 from src.mhr_local import MHR
 from v2dlb.mhr_submission import penetration_depth
-D = Path(sys.argv[1]); dev = sys.argv[2] if len(sys.argv) > 2 else "cuda:1"
+D = Path(sys.argv[1]); dev = sys.argv[2] if len(sys.argv) > 2 else "cuda:3"
 mhr = MHR(dev); sc = json.load(open(ROOT / "work/scored_frames_summary.json")); hv = mhr.hand_vertices
 worst = 0.0; frames_pen = 0; total = 0; per_ep = {}
 for ep in range(30):

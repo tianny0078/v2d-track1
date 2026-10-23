@@ -1,4 +1,5 @@
 #!/bin/bash
+# GPUs: Track-1 uses only GPU0 and GPU3 (GPU1/GPU2 are left to Track-3, user request 2026-10-20)
 # Parallel export: run export_episodes.py over episode subsets in N worker processes.
 # Usage: src/run_export_parallel.sh <out_dir> <n_workers> <extra args...>
 cd /home/tianyuan/projects/v2d_track1

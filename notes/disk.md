@@ -115,3 +115,27 @@
 - 2026-10-19 12:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 224G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；我们最大的目录：39G work/v2d_official。
 - 2026-10-19 18:48 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 896G（别人释放了约 650 GB，不是我们）；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
 - 2026-10-19 18:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 896G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 00:48 PDT 定时清理：释放 0.01 GB（pip 缓存、17 个 __pycache__）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 00:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 06:48 PDT 定时清理：释放 0.01 GB（pip 缓存、16 个 __pycache__）；根分区可用 901G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 06:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 901G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 12:48 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 12:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 18:48 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-20 18:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 900G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 00:48 PDT 定时清理：释放 0.01 GB（pip 缓存、3 个 __pycache__）；根分区可用 888G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 00:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 888G；/tmp 44G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 06:48 PDT 定时清理：释放 0.20 GB（pip 缓存 + 4 个超过 3 天的 /tmp/claude-1017/bash-edit-diff 旧目录，均为本用户的）；根分区可用 888G；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 06:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 888G；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 12:48 PDT 定时清理：释放 0.54 GB（pip 缓存 + 2 个超过 3 天的 /tmp/claude-1017/bash-edit-diff 旧目录，本用户的）；根分区可用 701G（一天内从 953G 降了约 250 GB，不是我们写的）；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 12:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 667G（仍在下降，不是我们写的）；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 221 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 18:04 PDT 磁盘告警调查：根分区可用 1 小时内 460G→343G。/home、/tmp 下 90 分钟内没有 >200 MB 的新文件；du 能看到的只有约 1.4T，其余在 root 权限目录（Docker 等）里。docker system df：镜像 257→313 GB、build cache 207→253 GB（今天早上记录→现在）；新镜像 8–9 小时前建的：robotic-grounding:v2dcase/latest（各 32 GB）、v2d_task_library_loader（28 GB）、flash_chord:v2dcase（22 GB）——看名字是 Track-3 项目的。未删除任何东西，已报告用户。
+- 2026-10-21 18:48 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 329G（仍在下降，速度比上一小时慢：343→329）；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 236 GB、build cache 35 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 18:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 331G（已止跌）；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 236 GB、build cache 35 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-21 23:01 PDT 磁盘续查：根分区可用 190G（02:00 时 344G）。Docker 镜像/缓存未再增长（313/253 GB）。du：/home/tianyuan 218→244G，其中 projects/v2d（Track-3）151G、projects/v2d_track1 75G（我们，无新写入）；/home/yunze 802G、/home/peiran 252G（他人，大小同前次）。剩余下降在无权限可见的位置。未删除任何东西。
+- 2026-10-22 00:48 PDT 定时清理：释放约 0.01 GB（pip 缓存 + 3 个超过 3 天未动的空 /tmp/claude-1017 会话目录）；根分区可用 316G（他人释放了约 120 GB，回升）；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 236 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-22 00:53 PDT 定时清理：释放 0.01 GB（pip 缓存）；根分区可用 329G；/tmp 43G，其中 Track-3 的 track3-hourly-*.tar.gz 21.2 GB（未删）；Docker 镜像可回收 236 GB（未删）；我们最大的目录：39G work/v2d_official。
+- 2026-10-22 06:48 清理：释放 ~0.01 GB；/ 剩 388 GB（89%）；/tmp 43G，其中 Track-3 tarball 21.2 GB（>20 GB，只报告未删）；最大占用者仍是 Docker 镜像 313 GB/构建缓存 253 GB、projects/v2d（Track-3）
+- 2026-10-22 06:53 清理：释放 ~0.01 GB；/ 剩 388 GB（89%）；/tmp 43G，其中 Track-3 tarball 21.2 GB（>20 GB，只报告未删）；最大占用者仍是 Docker 镜像 313 GB/构建缓存 253 GB、projects/v2d（Track-3）
+- 2026-10-22 12:48 清理：释放 ~0.01 GB；/ 剩 387 GB（89%）；/tmp 43G，其中 Track-3 tarball 21.2 GB（>20 GB，只报告未删）；最大占用者仍是 Docker 镜像 313 GB/构建缓存 253 GB、projects/v2d（Track-3）
+- 2026-10-22 12:53 清理：释放 ~0.01 GB；/ 剩 387 GB（89%）；/tmp 43G，其中 Track-3 tarball 21.2 GB（>20 GB，只报告未删）；最大占用者仍是 Docker 镜像 313 GB/构建缓存 253 GB、projects/v2d（Track-3）
